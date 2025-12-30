@@ -742,6 +742,102 @@ button.ghost {
 button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; filter: grayscale(0.2); }
 button:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 16px 34px rgba(255, 90, 0, 0.4); }
 
+/* Upload page */
+.upload-body {
+  background: radial-gradient(circle at 20% 20%, rgba(255,106,0,0.12), transparent 35%),
+              radial-gradient(circle at 80% 0%, rgba(88,101,242,0.15), transparent 30%),
+              #0f0f0f;
+  color: var(--yt-text);
+  min-height: 100vh;
+}
+
+.upload-container {
+  max-width: 960px;
+  margin: 40px auto;
+  padding: 0 16px;
+}
+
+.upload-card {
+  background: #111;
+  border: 1px solid var(--yt-border);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+
+.upload-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.upload-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.field input[type="text"],
+.field textarea {
+  border-radius: 10px;
+  background: #0f0f0f;
+  border: 1px solid var(--yt-border);
+  color: var(--yt-text);
+  padding: 12px;
+}
+
+.file-drop {
+  border: 1px dashed var(--yt-border);
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  cursor: pointer;
+  background: #0f0f0f;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.file-drop input[type="file"] {
+  display: none;
+}
+
+.file-drop.dragging {
+  border-color: var(--yt-accent);
+  background: rgba(62, 166, 255, 0.05);
+}
+
+.radio-group {
+  border: 1px solid var(--yt-border);
+  border-radius: 12px;
+  padding: 12px;
+  gap: 10px;
+}
+
+.radio-group legend {
+  padding: 0 6px;
+  color: var(--yt-text-secondary);
+  font-size: 13px;
+}
+
+.radio-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.result {
+  margin-top: 8px;
+  font-size: 14px;
+}
+
 .card {
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 18px;

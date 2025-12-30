@@ -114,8 +114,8 @@ function detectType(mimetype) {
   return 'unknown';
 }
 
-// Upload endpoint: accepts one validated file and records it as a draft
-app.post('/api/upload', (req, res) => {
+// Upload endpoint: accepts one validated file and records it as a draft (auth required)
+app.post('/api/upload', requireAuth, (req, res) => {
   upload.single('file')(req, res, async (err) => {
     if (err) {
       console.error('Upload error:', err.message);
@@ -126,12 +126,11 @@ app.post('/api/upload', (req, res) => {
       return res.status(400).json({ error: 'File is required' });
     }
 
-    const { uploaderDiscordId, uploaderDiscordName } = req.body;
-    if (!uploaderDiscordId) {
-      return res.status(400).json({ error: 'uploaderDiscordId is required' });
-    }
-
-    const uploaderName = String(uploaderDiscordName || '').trim().slice(0, 80) || 'Unknown';
+    const uploaderDiscordId = req.user?.discordId;
+    const uploaderName = (req.user?.username || 'Unknown').trim().slice(0, 80) || 'Unknown';
+    const format = req.body?.format === 'short' ? 'short' : 'long';
+    const title = String(req.body?.title || '').trim().slice(0, 200);
+    const description = String(req.body?.description || '').trim().slice(0, 2000);
 
     try {
       await db.upsertUser({ discordId: uploaderDiscordId, username: uploaderName, avatar: null });
@@ -153,13 +152,14 @@ app.post('/api/upload', (req, res) => {
       const data = {
         filename: fileUrl,
         type,
-        title: '',
-        description: '',
+        title,
+        description,
         uploaderDiscordId,
         uploaderName,
         status: 'draft',
         editToken,
-        createdAt
+        createdAt,
+        format
       };
 
       const info = await db.insertPost(data);
@@ -167,7 +167,8 @@ app.post('/api/upload', (req, res) => {
         id: info.lastInsertRowid,
         editToken,
         fileUrl: storage.getUrl(fileUrl),
-        type
+        type,
+        format
       });
     } catch (uploadErr) {
       console.error('Storage upload error:', uploadErr);
@@ -186,6 +187,7 @@ app.get('/api/posts', async (req, res) => {
     description: row.description,
     fileUrl: storage.getUrl(row.filename),
     type: row.type,
+    format: row.format || 'long',
     likes: row.likes,
     createdAt: row.createdAt,
     uploaderName: row.uploaderName,
@@ -203,6 +205,7 @@ app.get('/api/posts/trending', async (req, res) => {
     description: row.description,
     fileUrl: storage.getUrl(row.filename),
     type: row.type,
+    format: row.format || 'long',
     likes: row.likes,
     createdAt: row.createdAt,
     uploaderName: row.uploaderName,
@@ -221,6 +224,7 @@ app.get('/api/posts/liked', async (req, res) => {
     description: row.description,
     fileUrl: storage.getUrl(row.filename),
     type: row.type,
+    format: row.format || 'long',
     likes: row.likes,
     createdAt: row.createdAt,
     uploaderName: row.uploaderName,
@@ -239,6 +243,7 @@ app.get('/api/posts/history', async (req, res) => {
     description: row.description,
     fileUrl: storage.getUrl(row.filename),
     type: row.type,
+    format: row.format || 'long',
     likes: row.likes,
     createdAt: row.createdAt,
     uploaderName: row.uploaderName,
@@ -257,6 +262,7 @@ app.get('/api/posts/watchlater', async (req, res) => {
     description: row.description,
     fileUrl: storage.getUrl(row.filename),
     type: row.type,
+    format: row.format || 'long',
     likes: row.likes,
     createdAt: row.createdAt,
     uploaderName: row.uploaderName,
@@ -292,6 +298,7 @@ app.get('/api/post/:id', async (req, res) => {
     uploaderName: row.uploaderName,
     createdAt: row.createdAt,
     fileUrl: storage.getUrl(row.filename),
+    format: row.format || 'long',
     likes: row.likes,
     liked,
     canEdit: Boolean(tokenMatches)
@@ -512,6 +519,10 @@ app.get('/edit/:id', (_req, res) => {
 
 app.get('/post/:id', (_req, res) => {
   res.sendFile(path.resolve(publicDir, 'post.html'));
+});
+
+app.get('/upload', (_req, res) => {
+  res.sendFile(path.resolve(publicDir, 'upload.html'));
 });
 
 app.use((err, _req, res, _next) => {

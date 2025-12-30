@@ -39,7 +39,8 @@ export function createDatabase(config) {
             uploaderName TEXT DEFAULT '',
             status TEXT NOT NULL,
             editToken TEXT NOT NULL,
-            createdAt TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            createdAt TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            format TEXT NOT NULL DEFAULT 'long'
           );
         `);
         await pool.query(`
@@ -79,6 +80,7 @@ export function createDatabase(config) {
           );
         `);
         await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS uploaderName TEXT DEFAULT ''`);
+        await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS format TEXT DEFAULT 'long'`);
         await pool.query(`ALTER TABLE comments ADD COLUMN IF NOT EXISTS userId INTEGER REFERENCES users(id)`);
         await pool.query('CREATE INDEX IF NOT EXISTS idx_comments_postId ON comments(postId)');
         await pool.query('CREATE INDEX IF NOT EXISTS idx_likes_postId ON likes(postId)');
@@ -99,8 +101,8 @@ export function createDatabase(config) {
 
       async insertPost(data) {
         const res = await pool.query(
-          `INSERT INTO posts (filename, type, title, description, uploaderDiscordId, uploaderName, status, editToken, createdAt)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          `INSERT INTO posts (filename, type, title, description, uploaderDiscordId, uploaderName, status, editToken, createdAt, format)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
            RETURNING id`,
           [
             data.filename,
@@ -111,7 +113,8 @@ export function createDatabase(config) {
             data.uploaderName,
             data.status,
             data.editToken,
-            data.createdAt
+            data.createdAt,
+            data.format || 'long'
           ]
         );
         return { lastInsertRowid: res.rows[0].id };
@@ -295,7 +298,8 @@ export function createDatabase(config) {
       uploaderName TEXT DEFAULT '',
       status TEXT NOT NULL,
       editToken TEXT NOT NULL,
-      createdAt TEXT NOT NULL
+      createdAt TEXT NOT NULL,
+      format TEXT NOT NULL DEFAULT 'long'
     );
   `);
   db.exec(`
@@ -354,6 +358,10 @@ export function createDatabase(config) {
     db.exec("ALTER TABLE posts ADD COLUMN uploaderName TEXT DEFAULT ''");
   }
 
+  if (!postColumns.some((r) => r.name === 'format')) {
+    db.exec("ALTER TABLE posts ADD COLUMN format TEXT DEFAULT 'long'");
+  }
+
   if (!commentColumns.some((r) => r.name === 'userId')) {
     db.exec('ALTER TABLE comments ADD COLUMN userId INTEGER');
   }
@@ -365,8 +373,8 @@ export function createDatabase(config) {
     RETURNING id, discordId, username, avatar
   `);
   const insertPostStmt = db.prepare(`
-    INSERT INTO posts (filename, type, title, description, uploaderDiscordId, uploaderName, status, editToken, createdAt)
-    VALUES (@filename, @type, @title, @description, @uploaderDiscordId, @uploaderName, @status, @editToken, @createdAt)
+    INSERT INTO posts (filename, type, title, description, uploaderDiscordId, uploaderName, status, editToken, createdAt, format)
+    VALUES (@filename, @type, @title, @description, @uploaderDiscordId, @uploaderName, @status, @editToken, @createdAt, @format)
   `);
   const getPostStmt = db.prepare(`
     SELECT p.*, COALESCE(lc.count, 0) AS likes

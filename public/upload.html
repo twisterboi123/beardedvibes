@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload | BeardedVibes</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="upload-body">
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="logo" onclick="window.location.href='/'">
+        <span class="logo-icon">🔥</span>
+        <span class="logo-text">BeardedVibes</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button id="home-btn" class="ghost-btn">Home</button>
+      <button id="logout-btn" class="ghost-btn" style="display:none;">Sign out</button>
+    </div>
+  </header>
+
+  <main class="upload-container">
+    <div class="upload-card">
+      <div class="upload-header">
+        <div>
+          <p class="eyebrow">Creator Studio</p>
+          <h1>Upload a video</h1>
+          <p class="muted">Choose short or long form and we will save it as a draft. You can publish after reviewing.</p>
+        </div>
+        <div class="pill" id="session-pill">Checking session…</div>
+      </div>
+
+      <form id="upload-form" class="upload-form">
+        <label class="field">
+          <span>Title (optional)</span>
+          <input type="text" name="title" maxlength="200" placeholder="Add a title now or later on the edit page">
+        </label>
+
+        <label class="field">
+          <span>Description (optional)</span>
+          <textarea name="description" maxlength="2000" rows="3" placeholder="Add a description"></textarea>
+        </label>
+
+        <fieldset class="field radio-group">
+          <legend>Format</legend>
+          <label><input type="radio" name="format" value="short" required> Short (vertical / quick)</label>
+          <label><input type="radio" name="format" value="long" checked> Long form</label>
+        </fieldset>
+
+        <label class="field">
+          <span>Video or image file</span>
+          <div class="file-drop" id="dropzone">
+            <input type="file" id="file" name="file" accept="video/mp4,video/webm,image/jpeg,image/png,image/webp" required>
+            <p id="file-label">Drag & drop or click to choose (mp4, webm, jpg, png, webp)</p>
+          </div>
+        </label>
+
+        <div class="actions">
+          <button type="submit" id="upload-btn">Upload</button>
+        </div>
+        <div id="status" class="status" style="display:none;"></div>
+        <div id="result" class="result" style="display:none;"></div>
+      </form>
+    </div>
+  </main>
+
+  <script src="/upload.js"></script>
+</body>
+</html>

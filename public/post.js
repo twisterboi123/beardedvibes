@@ -197,7 +197,8 @@ async function init() {
     
     titleEl.textContent = data.title || 'Untitled';
     descriptionEl.textContent = data.description || 'No description provided yet.';
-    typePill.textContent = data.type === 'video' ? 'Video' : 'Image';
+    const formatLabel = data.format === 'short' ? 'Short' : 'Long form';
+    typePill.textContent = data.type === 'video' ? `Video • ${formatLabel}` : 'Image';
     publishedAtEl.textContent = `Published on ${new Date(data.createdAt).toLocaleString()}`;
     uploaderTag.textContent = data.uploaderName ? `by ${data.uploaderName}` : 'Uploader unknown';
     likeCount.textContent = data.likes ?? 0;
