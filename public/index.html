@@ -316,7 +316,15 @@
 
         const channelName = document.createElement('div');
         channelName.className = 'channel-name';
-        channelName.textContent = (p.uploaderName || 'Unknown') + (p.uploaderVerified ? ' ✓' : '');
+        const nameText = document.createElement('span');
+        nameText.textContent = p.uploaderName || 'Unknown';
+        channelName.appendChild(nameText);
+        if (p.uploaderVerified) {
+          const badge = document.createElement('span');
+          badge.className = 'verified-badge';
+          badge.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Verified';
+          channelName.appendChild(badge);
+        }
         if (p.uploaderDiscordId) {
           channelName.style.cursor = 'pointer';
           channelName.onclick = (e) => {

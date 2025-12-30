@@ -141,6 +141,9 @@ function renderComments(list) {
     
     const author = document.createElement('div');
     author.className = 'author';
+    author.style.display = 'flex';
+    author.style.alignItems = 'center';
+    author.style.gap = '6px';
     
     if (c.authorDiscordId) {
       const authorLink = document.createElement('a');
@@ -152,7 +155,18 @@ function renderComments(list) {
       authorLink.title = 'View profile';
       author.appendChild(authorLink);
     } else {
-      author.textContent = c.author;
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = c.author;
+      author.appendChild(nameSpan);
+    }
+    
+    if (c.authorVerified) {
+      const badge = document.createElement('span');
+      badge.className = 'verified-badge';
+      badge.innerHTML = '<svg viewBox="0 0 24 24" style="width:10px;height:10px;fill:currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Verified';
+      badge.style.fontSize = '9px';
+      badge.style.padding = '1px 6px';
+      author.appendChild(badge);
     }
     
     const text = document.createElement('div');
@@ -323,7 +337,16 @@ async function init() {
     publishedAtEl.textContent = `Published on ${new Date(data.createdAt).toLocaleString()}`;
     const uploaderName = data.uploaderName || 'Unknown uploader';
     uploaderTag.textContent = data.uploaderDiscordId ? `@${data.uploaderDiscordId}` : 'Uploader unknown';
-    uploaderNameEl.textContent = uploaderName + (data.uploaderVerified ? ' ✓' : '');
+    uploaderNameEl.innerHTML = '';
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = uploaderName;
+    uploaderNameEl.appendChild(nameSpan);
+    if (data.uploaderVerified) {
+      const badge = document.createElement('span');
+      badge.className = 'verified-badge';
+      badge.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Verified';
+      uploaderNameEl.appendChild(badge);
+    }
     state.uploaderDiscordId = data.uploaderDiscordId || null;
     setAvatar(uploaderAvatarEl, data.uploaderAvatar, uploaderName);
     if (state.uploaderDiscordId) {
