@@ -186,6 +186,22 @@ export function createDatabase(config) {
         return res.rows;
       },
 
+      async searchPosts(query) {
+        const searchTerm = `%${query}%`;
+        const res = await pool.query(`
+          SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar", COALESCE(u.isverified, false) AS "uploaderVerified"
+          FROM posts p
+          LEFT JOIN (
+            SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
+          ) lc ON lc.postId = p.id
+          LEFT JOIN users u ON u.discordid = p.uploaderdiscordid
+          WHERE p.status = 'published' AND (LOWER(p.title) LIKE LOWER($1) OR LOWER(p.description) LIKE LOWER($1) OR LOWER(p.uploadername) LIKE LOWER($1))
+          ORDER BY p.id DESC
+          LIMIT 50
+        `, [searchTerm]);
+        return res.rows;
+      },
+
       async listTrending() {
         const res = await pool.query(`
           SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar", COALESCE(u.isverified, false) AS "uploaderVerified"
@@ -386,7 +402,7 @@ export function createDatabase(config) {
       },
 
       async getAllUsers() {
-        const res = await pool.query('SELECT id, discordId, username, avatar, isAdmin, isBanned, isVerified, createdAt FROM users ORDER BY createdAt DESC');
+        const res = await pool.query('SELECT id, discordId AS "discordId", username, avatar, isAdmin AS "isAdmin", isBanned AS "isBanned", isVerified AS "isVerified", createdAt AS "createdAt" FROM users ORDER BY createdAt DESC');
         return res.rows;
       },
 
@@ -658,6 +674,22 @@ export function createDatabase(config) {
     getPost: (id) => Promise.resolve(getPostStmt.get(id)),
 
     listPublished: () => Promise.resolve(listPublishedStmt.all()),
+
+    searchPosts: (query) => {
+      const searchTerm = `%${query}%`;
+      const stmt = db.prepare(`
+        SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS uploaderAvatar, COALESCE(u.isVerified, 0) AS uploaderVerified
+        FROM posts p
+        LEFT JOIN (
+          SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
+        ) lc ON lc.postId = p.id
+        LEFT JOIN users u ON u.discordId = p.uploaderDiscordId
+        WHERE p.status = 'published' AND (LOWER(p.title) LIKE LOWER(?) OR LOWER(p.description) LIKE LOWER(?) OR LOWER(p.uploaderName) LIKE LOWER(?))
+        ORDER BY p.id DESC
+        LIMIT 50
+      `);
+      return Promise.resolve(stmt.all(searchTerm, searchTerm, searchTerm));
+    },
 
     listTrending: () => Promise.resolve(listTrendingStmt.all()),
 

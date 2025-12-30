@@ -281,6 +281,31 @@ app.get('/api/posts', async (req, res) => {
 	})) });
 });
 
+// Search posts
+app.get('/api/posts/search', async (req, res) => {
+	const query = req.query.q;
+	if (!query || query.trim().length < 2) {
+		return res.json({ posts: [] });
+	}
+	const rows = await db.searchPosts(query.trim());
+	const likedSet = req.user ? new Set(await db.getUserLikes(req.user.id)) : null;
+	return res.json({ posts: rows.map((row) => ({
+		id: row.id,
+		title: row.title,
+		description: row.description,
+		fileUrl: storage.getUrl(row.filename),
+		type: row.type,
+		format: row.format || 'long',
+		likes: row.likes,
+		createdAt: row.createdAt,
+		uploaderName: row.uploaderName,
+		uploaderAvatar: row.uploaderAvatar || null,
+		uploaderDiscordId: row.uploaderDiscordId || null,
+		uploaderVerified: Boolean(row.uploaderVerified),
+		liked: likedSet ? likedSet.has(Number(row.id)) : false
+	})) });
+});
+
 // Trending feed: most liked, then newest
 app.get('/api/posts/trending', async (req, res) => {
 	const rows = await db.listTrending();

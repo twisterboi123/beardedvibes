@@ -113,55 +113,53 @@
 
 		.admin-item-actions {
 			display: flex;
-			gap: 10px;
+			gap: 8px;
 			flex-wrap: wrap;
 		}
 
 		.admin-btn {
-			padding: 8px 16px;
+			padding: 8px 14px;
 			border: none;
-			border-radius: var(--radius-sm);
+			border-radius: 18px;
 			cursor: pointer;
 			font-size: 13px;
-			font-weight: 600;
-			transition: all var(--transition-fast);
+			font-weight: 500;
+			transition: all 0.2s ease;
 		}
 
 		.admin-btn.danger {
-			background: linear-gradient(135deg, #ff4444, #cc0000);
-			color: white;
+			background: rgba(255, 68, 68, 0.15);
+			color: #ff6b6b;
 		}
 
 		.admin-btn.danger:hover {
-			box-shadow: 0 4px 16px rgba(255, 68, 68, 0.4);
-			transform: translateY(-2px);
+			background: #ff4444;
+			color: white;
 		}
 
 		.admin-btn.warning {
-			background: linear-gradient(135deg, #ff9800, #e68900);
-			color: white;
+			background: rgba(255, 152, 0, 0.15);
+			color: #ffb74d;
 		}
 
 		.admin-btn.warning:hover {
-			box-shadow: 0 4px 16px rgba(255, 152, 0, 0.4);
-			transform: translateY(-2px);
-		}
-
-		.admin-btn.success {
-			background: linear-gradient(135deg, #4caf50, #388e3c);
+			background: #ff9800;
 			color: white;
 		}
 
+		.admin-btn.success {
+			background: rgba(76, 175, 80, 0.15);
+			color: #81c784;
+		}
+
 		.admin-btn.success:hover {
-			box-shadow: 0 4px 16px rgba(76, 175, 80, 0.4);
-			transform: translateY(-2px);
+			background: #4caf50;
+			color: white;
 		}
 
 		.admin-btn:disabled {
 			opacity: 0.5;
 			cursor: not-allowed;
-			transform: none !important;
-			box-shadow: none !important;
 		}
 
 		.admin-header {
@@ -540,5 +538,6 @@
 
 		init();
 	</script>
+	<div class="site-credits">Developer: <span>twizip</span> • Owner: <span>TheScrotchy</span> & <span>twizip</span></div>
 </body>
 </html>
