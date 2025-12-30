@@ -221,7 +221,7 @@
 			<div id="users" class="tab-content">
 				<div class="admin-header">
 					<h2>Manage Users</h2>
-					<p style="color: var(--yt-text-secondary); margin: 0">Ban, verify, or manage user accounts</p>
+					<p style="color: var(--yt-text-secondary); margin: 0">Ban, verify, promote admins, or manage user accounts</p>
 				</div>
 				<div id="users-list" class="admin-list">
 					<div class="loading">Loading users...</div>
@@ -358,6 +358,10 @@
 							? `<button class="admin-btn warning" onclick="toggleVerify('${user.discordId}', false)">Unverify</button>`
 							: `<button class="admin-btn success" onclick="toggleVerify('${user.discordId}', true)">Verify</button>`
 						}
+						${user.isAdmin
+							? `<button class="admin-btn warning" onclick="toggleAdmin('${user.discordId}', false)">Remove Admin</button>`
+							: `<button class="admin-btn" style="background: #9c27b0; color: white;" onclick="toggleAdmin('${user.discordId}', true)">Make Admin</button>`
+						}
 					</div>
 				</div>
 			`).join('');
@@ -405,6 +409,46 @@
 				if (res.ok) {
 					const user = state.users.find(u => u.discordId === discordId);
 					if (user) user.isVerified = verified;
+					renderUsers();
+					showSuccess(data.message);
+				} else {
+					showError(data.error || 'Failed to update user');
+				}
+			} catch (err) {
+				showError('Error: ' + err.message);
+			}
+		}
+
+		// Make/Remove Admin
+		async function toggleAdmin(discordId, makeAdmin) {
+			const action = makeAdmin ? 'promote to admin' : 'remove admin privileges from';
+			
+			// Multiple warnings for making someone admin
+			if (makeAdmin) {
+				if (!confirm(`⚠️ WARNING: You are about to make this user an ADMIN.\n\nAdmins can:\n- Ban/unban users\n- Verify users\n- Promote other admins\n- Delete content\n\nAre you sure?`)) return;
+				
+				if (!confirm(`⚠️ FINAL WARNING!\n\nThis will give FULL ADMIN POWERS to this user.\nThey will have the same permissions as you.\n\nType "YES" in the next prompt to confirm.`)) return;
+				
+				const confirmation = prompt('Type "YES" in CAPITAL LETTERS to confirm:');
+				if (confirmation !== 'YES') {
+					showError('Admin promotion cancelled');
+					return;
+				}
+			} else {
+				if (!confirm(`Are you sure you want to ${action} this user?`)) return;
+			}
+
+			try {
+				const res = await fetch(`/api/admin/user/${discordId}/admin`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ admin: makeAdmin })
+				});
+				const data = await res.json();
+
+				if (res.ok) {
+					const user = state.users.find(u => u.discordId === discordId);
+					if (user) user.isAdmin = makeAdmin;
 					renderUsers();
 					showSuccess(data.message);
 				} else {
