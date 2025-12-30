@@ -93,8 +93,19 @@ export function createDatabase(config) {
           `INSERT INTO users (discordId, username, avatar)
            VALUES ($1, $2, $3)
            ON CONFLICT (discordId) DO UPDATE SET username = EXCLUDED.username, avatar = EXCLUDED.avatar, lastSeenAt = NOW()
-           RETURNING id, discordId, username, avatar`,
+           RETURNING id, discordId AS "discordId", username, avatar`,
           [discordId, username, avatar]
+        );
+        return res.rows[0];
+      },
+
+      async getUserById(id) {
+        const res = await pool.query(
+          `SELECT id, discordId AS "discordId", username, avatar
+           FROM users
+           WHERE id = $1
+           LIMIT 1`,
+          [id]
         );
         return res.rows[0];
       },
@@ -454,6 +465,10 @@ export function createDatabase(config) {
 
     async upsertUser(data) {
       return upsertUserStmt.get(data);
+    },
+
+    async getUserById(id) {
+      return db.prepare('SELECT id, discordId, username, avatar FROM users WHERE id = ? LIMIT 1').get(id);
     },
 
     insertPost: (data) => Promise.resolve(insertPostStmt.run(data)),
