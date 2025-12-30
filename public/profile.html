@@ -883,6 +883,8 @@ async function loadProfile(){
   const id = params.get('id');
   const isSelf = !id || id === 'me';
 
+  console.log('Loading profile, isSelf:', isSelf, 'currentUser:', currentUser, 'id:', id);
+
   if(isSelf && !currentUser){
     username.textContent = 'Not logged in';
     handle.textContent = 'Please sign in';
@@ -890,11 +892,18 @@ async function loadProfile(){
   }
 
   const endpoint = isSelf ? '/api/me/profile' : `/api/user/${id}/profile`;
+  console.log('Fetching endpoint:', endpoint);
 
   try{
     const res = await fetch(endpoint);
-    if(!res.ok) throw new Error('Profile not found');
+    console.log('Profile response status:', res.status);
+    if(!res.ok) {
+      const errText = await res.text();
+      console.error('Profile fetch error:', errText);
+      throw new Error('Profile not found');
+    }
     profileData = await res.json();
+    console.log('Profile data:', profileData);
     
     username.innerHTML = '';
     const nameSpan = document.createElement('span');
