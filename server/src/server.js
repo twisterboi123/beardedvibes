@@ -208,7 +208,8 @@ app.post('/api/upload', requireAuth, (req, res) => {
 			res.clearCookie('session', sessionCookieOptions);
 			return res.status(401).json({ error: 'Login expired. Please sign in again.' });
 		}
-		const format = req.body?.format === 'short' ? 'short' : 'long';
+		const formatVal = req.body?.format;
+		const format = ['short', 'long', 'photo'].includes(formatVal) ? formatVal : 'long';
 		const publishNow = req.body?.publish === 'true' || req.body?.publish === 'on';
 		const title = String(req.body?.title || '').trim().slice(0, 200);
 		const description = String(req.body?.description || '').trim().slice(0, 2000);
@@ -277,6 +278,8 @@ app.get('/api/posts', async (req, res) => {
 		createdAt: row.createdAt,
 		uploaderName: row.uploaderName,
 		uploaderAvatar: row.uploaderAvatar || null,
+		uploaderDiscordId: row.uploaderDiscordId || null,
+		uploaderVerified: Boolean(row.uploaderVerified),
 		liked: likedSet ? likedSet.has(Number(row.id)) : false
 	})) });
 });
@@ -320,7 +323,9 @@ app.get('/api/posts/trending', async (req, res) => {
 		likes: row.likes,
 		createdAt: row.createdAt,
 		uploaderName: row.uploaderName,
-		uploaderAvatar: row.uploaderAvatar || null,		uploaderDiscordId: row.uploaderDiscordId || null,
+		uploaderAvatar: row.uploaderAvatar || null,
+		uploaderDiscordId: row.uploaderDiscordId || null,
+		uploaderVerified: Boolean(row.uploaderVerified),
 		liked: likedSet ? likedSet.has(Number(row.id)) : false
 	})) });
 });
@@ -341,7 +346,9 @@ app.get('/api/posts/photos', async (req, res) => {
 		createdAt: row.createdAt,
 		uploaderName: row.uploaderName,
 		uploaderAvatar: row.uploaderAvatar || null,
-		uploaderDiscordId: row.uploaderDiscordId || null,		liked: likedSet ? likedSet.has(Number(row.id)) : false
+		uploaderDiscordId: row.uploaderDiscordId || null,
+		uploaderVerified: Boolean(row.uploaderVerified),
+		liked: likedSet ? likedSet.has(Number(row.id)) : false
 	})) });
 });
 
@@ -361,6 +368,8 @@ app.get('/api/posts/liked', async (req, res) => {
 		createdAt: row.createdAt,
 		uploaderName: row.uploaderName,
 		uploaderAvatar: row.uploaderAvatar || null,
+		uploaderDiscordId: row.uploaderDiscordId || null,
+		uploaderVerified: Boolean(row.uploaderVerified),
 		liked: likedSet.has(Number(row.id))
 	})) });
 });
@@ -381,6 +390,8 @@ app.get('/api/posts/history', async (req, res) => {
 		createdAt: row.createdAt,
 		uploaderName: row.uploaderName,
 		uploaderAvatar: row.uploaderAvatar || null,
+		uploaderDiscordId: row.uploaderDiscordId || null,
+		uploaderVerified: Boolean(row.uploaderVerified),
 		liked: likedSet.has(Number(row.id))
 	})) });
 });
@@ -400,8 +411,8 @@ app.get('/api/posts/watchlater', async (req, res) => {
 		likes: row.likes,
 		createdAt: row.createdAt,
 		uploaderName: row.uploaderName,
-		uploaderAvatar: row.uploaderAvatar || null,
-		liked: likedSet.has(Number(row.id))
+		uploaderAvatar: row.uploaderAvatar || null,		uploaderDiscordId: row.uploaderDiscordId || null,
+		uploaderVerified: Boolean(row.uploaderVerified),		liked: likedSet.has(Number(row.id))
 	})) });
 });
 
@@ -434,6 +445,7 @@ app.get('/api/post/:id', async (req, res) => {
 		uploaderDiscordId: row.uploaderDiscordId,
 		uploaderName: row.uploaderName,
 		uploaderAvatar: row.uploaderAvatar || null,
+		uploaderVerified: Boolean(row.uploaderVerified),
 		createdAt: row.createdAt,
 		fileUrl: storage.getUrl(row.filename),
 		format: row.format || 'long',

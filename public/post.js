@@ -38,6 +38,52 @@ const state = {
   uploaderDiscordId: null
 };
 
+// Create lightbox elements
+let lightbox = null;
+let lightboxImg = null;
+
+function createLightbox() {
+  if (lightbox) return;
+  
+  lightbox = document.createElement('div');
+  lightbox.className = 'lightbox';
+  lightbox.onclick = closeLightbox;
+  
+  lightboxImg = document.createElement('img');
+  lightboxImg.onclick = (e) => e.stopPropagation();
+  
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'lightbox-close';
+  closeBtn.innerHTML = '✕';
+  closeBtn.onclick = closeLightbox;
+  
+  lightbox.appendChild(lightboxImg);
+  lightbox.appendChild(closeBtn);
+  document.body.appendChild(lightbox);
+  
+  // Close on Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && lightbox.classList.contains('active')) {
+      closeLightbox();
+    }
+  });
+}
+
+function openLightbox(src, alt) {
+  createLightbox();
+  lightboxImg.src = src;
+  lightboxImg.alt = alt || 'Full size image';
+  lightbox.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+  if (lightbox) {
+    lightbox.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+}
+
 function setAvatar(el, url, fallback) {
   if (!el) return;
   el.innerHTML = '';
@@ -62,6 +108,8 @@ function renderPreview(data) {
     const img = document.createElement('img');
     img.src = data.fileUrl;
     img.alt = data.title || 'Post preview';
+    img.style.cursor = 'zoom-in';
+    img.onclick = () => openLightbox(data.fileUrl, data.title);
     previewEl.appendChild(img);
     videoEl = null;
   } else if (data.type === 'video') {

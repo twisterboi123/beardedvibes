@@ -43,7 +43,7 @@ fileInput.addEventListener('change', () => {
 
 formatButtons.forEach((btn) => {
   btn.addEventListener('click', () => {
-    const fmt = btn.dataset.format === 'short' ? 'short' : 'long';
+    const fmt = btn.dataset.format; // 'short', 'long', or 'photo'
     formatInput.value = fmt;
     formatButtons.forEach((b) => b.classList.toggle('active', b === btn));
   });
@@ -88,7 +88,7 @@ form.addEventListener('submit', async (e) => {
 
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('format', formatInput.value === 'short' ? 'short' : 'long');
+  formData.append('format', formatInput.value || 'long'); // 'short', 'long', or 'photo'
   formData.append('title', form.title.value);
   formData.append('description', form.description.value);
   formData.append('publish', publishCheckbox.checked ? 'true' : 'false');

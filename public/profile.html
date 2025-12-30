@@ -59,12 +59,26 @@
 }
 
 .verified-badge {
-  background: linear-gradient(135deg, #065fd4, #3ea6ff);
-  color: #fff;
-  padding: 3px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #1d9bf0, #3ea6ff);
+  color: #ffffff !important;
+  padding: 4px 12px;
   border-radius: 12px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(29, 155, 240, 0.5);
+  letter-spacing: 0.3px;
+}
+
+.verified-badge svg {
+  width: 14px;
+  height: 14px;
+  fill: #ffffff !important;
+  flex-shrink: 0;
 }
 
 .handle {
@@ -609,11 +623,6 @@ document.getElementById('profileForm').onsubmit = async (e) => {
   }catch(err){
     status.textContent = 'Error: ' + err.message;
   }
-};
-
-/* EDIT BUTTON */
-editBtn.onclick = () => {
-  window.location.href = '/profile-edit.html';
 };
 
 /* TOP AVATAR CLICK */

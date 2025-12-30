@@ -134,7 +134,19 @@
       uploaderInfo.className = 'short-uploader-info';
       const name = document.createElement('div');
       name.className = 'name';
-      name.textContent = post.uploaderName || 'Unknown';
+      name.style.display = 'flex';
+      name.style.alignItems = 'center';
+      name.style.gap = '8px';
+      const nameText = document.createElement('span');
+      nameText.textContent = post.uploaderName || 'Unknown';
+      name.appendChild(nameText);
+      if (post.uploaderVerified) {
+        const badge = document.createElement('span');
+        badge.className = 'verified-badge';
+        badge.innerHTML = '<svg viewBox="0 0 24 24" fill="#ffffff"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Verified';
+        badge.style.fontSize = '10px';
+        name.appendChild(badge);
+      }
       const tag = document.createElement('div');
       tag.className = 'tag';
       tag.textContent = post.uploaderDiscordId ? `@${post.uploaderDiscordId}` : '';
