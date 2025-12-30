@@ -190,15 +190,21 @@ function resolveAssetUrl(value) {
 	}
 }
 
-// Upload endpoint: accepts one validated file and records it as a draft (auth required)
+// Upload endpoint: accepts one validated file and optional thumbnail (auth required)
 app.post('/api/upload', requireAuth, (req, res) => {
-	upload.single('file')(req, res, async (err) => {
+	upload.fields([
+		{ name: 'file', maxCount: 1 },
+		{ name: 'thumbnail', maxCount: 1 }
+	])(req, res, async (err) => {
 		if (err) {
 			console.error('Upload error:', err.message);
 			return res.status(400).json({ error: err.message });
 		}
 
-		if (!req.file) {
+		const mainFile = req.files?.file?.[0];
+		const thumbnailFile = req.files?.thumbnail?.[0];
+
+		if (!mainFile) {
 			return res.status(400).json({ error: 'File is required' });
 		}
 
@@ -209,10 +215,21 @@ app.post('/api/upload', requireAuth, (req, res) => {
 			return res.status(401).json({ error: 'Login expired. Please sign in again.' });
 		}
 		
-		const type = detectType(req.file.mimetype);
+		const type = detectType(mainFile.mimetype);
 		if (type === 'unknown') {
-			fs.unlink(req.file.path, () => {});
+			fs.unlink(mainFile.path, () => {});
+			if (thumbnailFile) fs.unlink(thumbnailFile.path, () => {});
 			return res.status(400).json({ error: 'Unsupported file type' });
+		}
+
+		// Validate thumbnail is an image if provided
+		if (thumbnailFile) {
+			const thumbType = detectType(thumbnailFile.mimetype);
+			if (thumbType !== 'image') {
+				fs.unlink(mainFile.path, () => {});
+				fs.unlink(thumbnailFile.path, () => {});
+				return res.status(400).json({ error: 'Thumbnail must be an image' });
+			}
 		}
 		
 		// Auto-detect format: images are always 'photo', videos use user selection
@@ -235,7 +252,14 @@ app.post('/api/upload', requireAuth, (req, res) => {
 		}
 
 		try {
-			const fileUrl = await storage.upload(req.file.path, req.file.filename);
+			const fileUrl = await storage.upload(mainFile.path, mainFile.filename);
+			
+			// Upload thumbnail if provided
+			let thumbnailUrl = '';
+			if (thumbnailFile) {
+				thumbnailUrl = await storage.upload(thumbnailFile.path, thumbnailFile.filename);
+			}
+			
 			const editToken = crypto.randomBytes(24).toString('hex');
 			const createdAt = new Date().toISOString();
 
@@ -249,16 +273,18 @@ app.post('/api/upload', requireAuth, (req, res) => {
 				status: publishNow ? 'published' : 'draft',
 				editToken,
 				createdAt,
-				format
+				format,
+				thumbnail: thumbnailUrl
 			};
 
-			console.log('Attempting to insert post with data:', { ...data, filename: '[url]' });
+			console.log('Attempting to insert post with data:', { ...data, filename: '[url]', thumbnail: thumbnailUrl ? '[url]' : '' });
 			const info = await db.insertPost(data);
 			console.log('Post inserted successfully with ID:', info.lastInsertRowid);
 			return res.status(201).json({
 				id: info.lastInsertRowid,
 				editToken,
 				fileUrl: storage.getUrl(fileUrl),
+				thumbnailUrl: thumbnailUrl ? storage.getUrl(thumbnailUrl) : null,
 				type,
 				format,
 				status: data.status
@@ -280,6 +306,7 @@ app.get('/api/posts', async (req, res) => {
 		title: row.title,
 		description: row.description,
 		fileUrl: storage.getUrl(row.filename),
+		thumbnail: row.thumbnail ? storage.getUrl(row.thumbnail) : null,
 		type: row.type,
 		format: row.format || 'long',
 		likes: row.likes,
@@ -305,6 +332,7 @@ app.get('/api/posts/search', async (req, res) => {
 		title: row.title,
 		description: row.description,
 		fileUrl: storage.getUrl(row.filename),
+		thumbnail: row.thumbnail ? storage.getUrl(row.thumbnail) : null,
 		type: row.type,
 		format: row.format || 'long',
 		likes: row.likes,
@@ -326,6 +354,7 @@ app.get('/api/posts/trending', async (req, res) => {
 		title: row.title,
 		description: row.description,
 		fileUrl: storage.getUrl(row.filename),
+		thumbnail: row.thumbnail ? storage.getUrl(row.thumbnail) : null,
 		type: row.type,
 		format: row.format || 'long',
 		likes: row.likes,

@@ -18,6 +18,16 @@ const previewName = document.getElementById('preview-name');
 const previewSize = document.getElementById('preview-size');
 const previewRemove = document.getElementById('preview-remove');
 
+// Thumbnail elements
+const thumbnailInput = document.getElementById('thumbnail');
+const thumbnailLabel = document.getElementById('thumbnail-label');
+const thumbnailDropzone = document.getElementById('thumbnail-dropzone');
+const thumbnailPreview = document.getElementById('thumbnail-preview');
+const thumbnailPreviewMedia = document.getElementById('thumbnail-preview-media');
+const thumbnailPreviewName = document.getElementById('thumbnail-preview-name');
+const thumbnailPreviewSize = document.getElementById('thumbnail-preview-size');
+const thumbnailPreviewRemove = document.getElementById('thumbnail-preview-remove');
+
 homeBtn.addEventListener('click', () => window.location.href = '/');
 logoutBtn.addEventListener('click', async () => {
   await fetch('/api/auth/logout', { method: 'POST' });
@@ -107,8 +117,70 @@ function removeFile() {
     btn.classList.toggle('active', btn.dataset.format === 'long');
     btn.style.display = '';
   });
-  fileLabel.innerHTML = 'Drag & drop or click to choose<br><small style="color: var(--yt-text-secondary);">mp4, webm, jpg, png, webp</small>';
+  fileLabel.innerHTML = 'Drag & drop or click to choose<br><small style="color: var(--yt-text-secondary);">mp4, webm</small>';
 }
+
+// Thumbnail preview functions
+function showThumbnailPreview(file) {
+  if (!file) {
+    hideThumbnailPreview();
+    return;
+  }
+  
+  thumbnailPreviewMedia.innerHTML = '';
+  thumbnailPreviewName.textContent = file.name;
+  thumbnailPreviewSize.textContent = formatFileSize(file.size);
+  
+  const url = URL.createObjectURL(file);
+  const img = document.createElement('img');
+  img.src = url;
+  img.alt = 'Thumbnail Preview';
+  thumbnailPreviewMedia.appendChild(img);
+  
+  thumbnailPreview.classList.add('active');
+  thumbnailDropzone.style.display = 'none';
+}
+
+function hideThumbnailPreview() {
+  thumbnailPreview.classList.remove('active');
+  thumbnailDropzone.style.display = 'block';
+  thumbnailPreviewMedia.innerHTML = '';
+  thumbnailPreviewName.textContent = '';
+  thumbnailPreviewSize.textContent = '';
+}
+
+function removeThumbnail() {
+  thumbnailInput.value = '';
+  hideThumbnailPreview();
+}
+
+thumbnailPreviewRemove.addEventListener('click', removeThumbnail);
+
+thumbnailDropzone.addEventListener('click', () => thumbnailInput.click());
+thumbnailDropzone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  thumbnailDropzone.classList.add('dragging');
+});
+thumbnailDropzone.addEventListener('dragleave', () => thumbnailDropzone.classList.remove('dragging'));
+thumbnailDropzone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  thumbnailDropzone.classList.remove('dragging');
+  if (e.dataTransfer.files?.length) {
+    const file = e.dataTransfer.files[0];
+    if (file.type.startsWith('image/')) {
+      thumbnailInput.files = e.dataTransfer.files;
+      showThumbnailPreview(file);
+    }
+  }
+});
+
+thumbnailInput.addEventListener('change', () => {
+  if (thumbnailInput.files?.length) {
+    showThumbnailPreview(thumbnailInput.files[0]);
+  } else {
+    hideThumbnailPreview();
+  }
+});
 
 previewRemove.addEventListener('click', removeFile);
 
@@ -176,16 +248,22 @@ form.addEventListener('submit', async (e) => {
   e.preventDefault();
   const file = fileInput.files?.[0];
   if (!file) {
-    setStatus('Choose a file to upload.', 'error');
+    setStatus('Choose a video file to upload.', 'error');
     return;
   }
 
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('format', formatInput.value || 'long'); // 'short', 'long', or 'photo'
+  formData.append('format', formatInput.value || 'long'); // 'short' or 'long'
   formData.append('title', form.title.value);
   formData.append('description', form.description.value);
   formData.append('publish', publishCheckbox.checked ? 'true' : 'false');
+  
+  // Add thumbnail if selected
+  const thumbnail = thumbnailInput.files?.[0];
+  if (thumbnail) {
+    formData.append('thumbnail', thumbnail);
+  }
 
   uploadBtn.disabled = true;
   setStatus('Uploading…');
@@ -211,6 +289,7 @@ form.addEventListener('submit', async (e) => {
     setResult({ status: data.status, editLink, token: data.editToken, viewLink });
     form.reset();
     removeFile();
+    removeThumbnail();
   } catch (err) {
     setStatus(err.message, 'error');
   } finally {

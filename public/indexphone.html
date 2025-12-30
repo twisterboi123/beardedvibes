@@ -688,25 +688,39 @@
         const thumbWrap = document.createElement('div');
         thumbWrap.className = 'video-thumbnail';
         
-        const thumb = document.createElement(p.type === 'video' ? 'video' : 'img');
-        thumb.src = p.fileUrl;
+        // Use thumbnail if available, otherwise use video/image
+        const hasThumbnail = p.thumbnail && p.type === 'video';
+        const thumb = document.createElement(hasThumbnail ? 'img' : (p.type === 'video' ? 'video' : 'img'));
+        thumb.src = hasThumbnail ? p.thumbnail : p.fileUrl;
         thumb.loading = 'lazy';
         
         let duration = null;
         if (p.type === 'video') {
-          thumb.muted = true;
-          thumb.preload = 'metadata';
-          thumb.playsInline = true;
-          
           duration = document.createElement('span');
           duration.className = 'duration-badge';
           duration.textContent = '0:00';
           
-          thumb.addEventListener('loadedmetadata', () => {
-            if (thumb.duration && !isNaN(thumb.duration) && isFinite(thumb.duration)) {
-              duration.textContent = formatDuration(thumb.duration);
-            }
-          });
+          if (hasThumbnail) {
+            // Load video metadata separately for duration
+            const hiddenVideo = document.createElement('video');
+            hiddenVideo.src = p.fileUrl;
+            hiddenVideo.preload = 'metadata';
+            hiddenVideo.addEventListener('loadedmetadata', () => {
+              if (hiddenVideo.duration && !isNaN(hiddenVideo.duration) && isFinite(hiddenVideo.duration)) {
+                duration.textContent = formatDuration(hiddenVideo.duration);
+              }
+            });
+          } else {
+            thumb.muted = true;
+            thumb.preload = 'metadata';
+            thumb.playsInline = true;
+            
+            thumb.addEventListener('loadedmetadata', () => {
+              if (thumb.duration && !isNaN(thumb.duration) && isFinite(thumb.duration)) {
+                duration.textContent = formatDuration(thumb.duration);
+              }
+            });
+          }
         }
         
         thumbWrap.appendChild(thumb);

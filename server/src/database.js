@@ -15,6 +15,7 @@ export function createDatabase(config) {
         p.status, p.edittoken AS "editToken", 
         p.createdat AS "createdAt", 
         p.format,
+        p.thumbnail,
         COALESCE(lc.count, 0) AS likes, 
         u.avatar AS "uploaderAvatar",
         COALESCE(u.isverified, false) AS "uploaderVerified"
@@ -49,6 +50,7 @@ export function createDatabase(config) {
         await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT DEFAULT ''`);
         await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS banner TEXT DEFAULT ''`);
         await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profileColor TEXT DEFAULT '#3ea6ff'`);
+        await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS thumbnail TEXT DEFAULT ''`);
         await pool.query(`
           CREATE TABLE IF NOT EXISTS posts (
             id SERIAL PRIMARY KEY,
@@ -165,8 +167,8 @@ export function createDatabase(config) {
 
       async insertPost(data) {
         const res = await pool.query(
-          `INSERT INTO posts (filename, type, title, description, uploaderDiscordId, uploaderName, status, editToken, createdAt)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          `INSERT INTO posts (filename, type, title, description, uploaderDiscordId, uploaderName, status, editToken, createdAt, thumbnail)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
            RETURNING id`,
           [
             data.filename,
@@ -177,7 +179,8 @@ export function createDatabase(config) {
             data.uploaderName,
             data.status,
             data.editToken,
-            data.createdAt
+            data.createdAt,
+            data.thumbnail || ''
           ]
         );
         return { lastInsertRowid: res.rows[0].id };
@@ -190,7 +193,7 @@ export function createDatabase(config) {
 
       async listPublished() {
         const res = await pool.query(`
-          SELECT p.id, p.filename, p.type, p.title, p.description, p.format,
+          SELECT p.id, p.filename, p.type, p.title, p.description, p.format, p.thumbnail,
                  p.uploaderdiscordid AS "uploaderDiscordId", p.uploadername AS "uploaderName",
                  p.createdat AS "createdAt", p.status,
                  COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar", COALESCE(u.isverified, false) AS "uploaderVerified"
@@ -208,7 +211,7 @@ export function createDatabase(config) {
       async searchPosts(query) {
         const searchTerm = `%${query}%`;
         const res = await pool.query(`
-          SELECT p.id, p.filename, p.type, p.title, p.description, p.format,
+          SELECT p.id, p.filename, p.type, p.title, p.description, p.format, p.thumbnail,
                  p.uploaderdiscordid AS "uploaderDiscordId", p.uploadername AS "uploaderName",
                  p.createdat AS "createdAt", p.status,
                  COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar", COALESCE(u.isverified, false) AS "uploaderVerified"
@@ -226,7 +229,7 @@ export function createDatabase(config) {
 
       async listTrending() {
         const res = await pool.query(`
-          SELECT p.id, p.filename, p.type, p.title, p.description, p.format,
+          SELECT p.id, p.filename, p.type, p.title, p.description, p.format, p.thumbnail,
                  p.uploaderdiscordid AS "uploaderDiscordId", p.uploadername AS "uploaderName",
                  p.createdat AS "createdAt", p.status,
                  COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar", COALESCE(u.isverified, false) AS "uploaderVerified"
@@ -244,7 +247,7 @@ export function createDatabase(config) {
 
       async listLiked(userId) {
         const res = await pool.query(`
-          SELECT p.id, p.filename, p.type, p.title, p.description, p.format,
+          SELECT p.id, p.filename, p.type, p.title, p.description, p.format, p.thumbnail,
                  p.uploaderdiscordid AS "uploaderDiscordId", p.uploadername AS "uploaderName",
                  p.createdat AS "createdAt", p.status,
                  COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar", COALESCE(u.isverified, false) AS "uploaderVerified"
@@ -262,7 +265,7 @@ export function createDatabase(config) {
 
       async listHistory(userId) {
         const res = await pool.query(`
-          SELECT p.id, p.filename, p.type, p.title, p.description, p.format,
+          SELECT p.id, p.filename, p.type, p.title, p.description, p.format, p.thumbnail,
                  p.uploaderdiscordid AS "uploaderDiscordId", p.uploadername AS "uploaderName",
                  p.createdat AS "createdAt", p.status, h.viewedAt AS "viewedAt",
                  COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar", COALESCE(u.isverified, false) AS "uploaderVerified"
@@ -280,7 +283,7 @@ export function createDatabase(config) {
 
       async listWatchlist(userId) {
         const res = await pool.query(`
-          SELECT p.id, p.filename, p.type, p.title, p.description, p.format,
+          SELECT p.id, p.filename, p.type, p.title, p.description, p.format, p.thumbnail,
                  p.uploaderdiscordid AS "uploaderDiscordId", p.uploadername AS "uploaderName",
                  p.createdat AS "createdAt", p.status, w.addedAt AS "addedAt",
                  COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar", COALESCE(u.isverified, false) AS "uploaderVerified"
@@ -664,6 +667,10 @@ export function createDatabase(config) {
     db.exec("ALTER TABLE posts ADD COLUMN format TEXT DEFAULT 'long'");
   }
 
+  if (!postColumns.some((r) => r.name === 'thumbnail')) {
+    db.exec("ALTER TABLE posts ADD COLUMN thumbnail TEXT DEFAULT ''");
+  }
+
   if (!commentColumns.some((r) => r.name === 'userId')) {
     db.exec('ALTER TABLE comments ADD COLUMN userId INTEGER');
   }
@@ -675,8 +682,8 @@ export function createDatabase(config) {
     RETURNING id, discordId, username, avatar
   `);
   const insertPostStmt = db.prepare(`
-    INSERT INTO posts (filename, type, title, description, uploaderDiscordId, uploaderName, status, editToken, createdAt)
-    VALUES (@filename, @type, @title, @description, @uploaderDiscordId, @uploaderName, @status, @editToken, @createdAt)
+    INSERT INTO posts (filename, type, title, description, uploaderDiscordId, uploaderName, status, editToken, createdAt, thumbnail)
+    VALUES (@filename, @type, @title, @description, @uploaderDiscordId, @uploaderName, @status, @editToken, @createdAt, @thumbnail)
   `);
   const getPostStmt = db.prepare(`
     SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS uploaderAvatar, COALESCE(u.isVerified, 0) AS uploaderVerified

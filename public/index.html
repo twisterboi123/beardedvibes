@@ -378,35 +378,49 @@
         const thumbWrap = document.createElement('div');
         thumbWrap.className = 'video-thumbnail';
         
-        const thumb = document.createElement(p.type === 'video' ? 'video' : 'img');
-        thumb.src = p.fileUrl;
+        // Use thumbnail if available, otherwise use video/image
+        const hasThumbnail = p.thumbnail && p.type === 'video';
+        const thumb = document.createElement(hasThumbnail ? 'img' : (p.type === 'video' ? 'video' : 'img'));
+        thumb.src = hasThumbnail ? p.thumbnail : p.fileUrl;
         thumb.loading = 'lazy';
         
         // Only show duration badge for videos
         let duration = null;
         if (p.type === 'video') {
-          thumb.muted = true;
-          thumb.preload = 'metadata';
-          
           // Create duration badge for videos
           duration = document.createElement('span');
           duration.className = 'duration-badge';
           duration.textContent = '0:00'; // Placeholder until loaded
           
-          // Get actual duration when video metadata loads
-          thumb.addEventListener('loadedmetadata', () => {
-            if (thumb.duration && !isNaN(thumb.duration) && isFinite(thumb.duration)) {
-              duration.textContent = formatDuration(thumb.duration);
-            }
-          });
-          
-          thumbWrap.addEventListener('mouseenter', () => {
-            thumb.play().catch(() => {});
-          });
-          thumbWrap.addEventListener('mouseleave', () => {
-            thumb.pause();
-            thumb.currentTime = 0;
-          });
+          if (hasThumbnail) {
+            // For thumbnail images, we need to load video metadata separately
+            const hiddenVideo = document.createElement('video');
+            hiddenVideo.src = p.fileUrl;
+            hiddenVideo.preload = 'metadata';
+            hiddenVideo.addEventListener('loadedmetadata', () => {
+              if (hiddenVideo.duration && !isNaN(hiddenVideo.duration) && isFinite(hiddenVideo.duration)) {
+                duration.textContent = formatDuration(hiddenVideo.duration);
+              }
+            });
+          } else {
+            thumb.muted = true;
+            thumb.preload = 'metadata';
+            
+            // Get actual duration when video metadata loads
+            thumb.addEventListener('loadedmetadata', () => {
+              if (thumb.duration && !isNaN(thumb.duration) && isFinite(thumb.duration)) {
+                duration.textContent = formatDuration(thumb.duration);
+              }
+            });
+            
+            thumbWrap.addEventListener('mouseenter', () => {
+              thumb.play().catch(() => {});
+            });
+            thumbWrap.addEventListener('mouseleave', () => {
+              thumb.pause();
+              thumb.currentTime = 0;
+            });
+          }
         }
         
         thumbWrap.appendChild(thumb);

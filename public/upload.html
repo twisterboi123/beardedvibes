@@ -196,10 +196,10 @@
         </label>
 
         <label class="field">
-          <span>Video or image file</span>
+          <span>Video file</span>
           <div class="file-drop" id="dropzone">
-            <input type="file" id="file" name="file" accept="video/*,image/*" required>
-            <p id="file-label">Drag & drop or click to choose<br><small style="color: var(--yt-text-secondary);">mp4, webm, jpg, png, webp</small></p>
+            <input type="file" id="file" name="file" accept="video/*" required>
+            <p id="file-label">Drag & drop or click to choose<br><small style="color: var(--yt-text-secondary);">mp4, webm</small></p>
           </div>
           <div class="file-preview" id="file-preview">
             <div id="preview-media"></div>
@@ -209,6 +209,24 @@
                 <div class="file-preview-size" id="preview-size"></div>
               </div>
               <button type="button" class="file-preview-remove" id="preview-remove">Remove</button>
+            </div>
+          </div>
+        </label>
+
+        <label class="field">
+          <span>Thumbnail (optional)</span>
+          <div class="file-drop" id="thumbnail-dropzone">
+            <input type="file" id="thumbnail" name="thumbnail" accept="image/*">
+            <p id="thumbnail-label">Drag & drop or click to add a custom thumbnail<br><small style="color: var(--yt-text-secondary);">jpg, png, webp</small></p>
+          </div>
+          <div class="file-preview" id="thumbnail-preview">
+            <div id="thumbnail-preview-media"></div>
+            <div class="file-preview-info">
+              <div>
+                <div class="file-preview-name" id="thumbnail-preview-name"></div>
+                <div class="file-preview-size" id="thumbnail-preview-size"></div>
+              </div>
+              <button type="button" class="file-preview-remove" id="thumbnail-preview-remove">Remove</button>
             </div>
           </div>
         </label>
