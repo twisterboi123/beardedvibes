@@ -8,11 +8,12 @@ export function createDatabase(config) {
     const pool = new Pool({ connectionString: config.url, ssl: config.ssl ? { rejectUnauthorized: false } : false });
 
     const postWithLikes = `
-      SELECT p.*, COALESCE(lc.count, 0) AS likes
+      SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar"
       FROM posts p
       LEFT JOIN (
         SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
       ) lc ON lc.postId = p.id
+      LEFT JOIN users u ON u."discordId" = p."uploaderDiscordId"
       WHERE p.id = $1
     `;
 
@@ -137,11 +138,12 @@ export function createDatabase(config) {
 
       async listPublished() {
         const res = await pool.query(`
-          SELECT p.*, COALESCE(lc.count, 0) AS likes
+          SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar"
           FROM posts p
           LEFT JOIN (
             SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
           ) lc ON lc.postId = p.id
+          LEFT JOIN users u ON u."discordId" = p."uploaderDiscordId"
           WHERE p.status = 'published'
           ORDER BY p.id DESC
         `);
@@ -150,11 +152,12 @@ export function createDatabase(config) {
 
       async listTrending() {
         const res = await pool.query(`
-          SELECT p.*, COALESCE(lc.count, 0) AS likes
+          SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar"
           FROM posts p
           LEFT JOIN (
             SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
           ) lc ON lc.postId = p.id
+          LEFT JOIN users u ON u."discordId" = p."uploaderDiscordId"
           WHERE p.status = 'published'
           ORDER BY lc.count DESC NULLS LAST, p.createdAt DESC
           LIMIT 100
@@ -164,12 +167,13 @@ export function createDatabase(config) {
 
       async listLiked(userId) {
         const res = await pool.query(`
-          SELECT p.*, COALESCE(lc.count, 0) AS likes
+          SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar"
           FROM likes l
           JOIN posts p ON p.id = l.postId
           LEFT JOIN (
             SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
           ) lc ON lc.postId = p.id
+          LEFT JOIN users u ON u."discordId" = p."uploaderDiscordId"
           WHERE l.userId = $1 AND p.status = 'published'
           ORDER BY l.createdAt DESC
         `, [userId]);
@@ -178,12 +182,13 @@ export function createDatabase(config) {
 
       async listHistory(userId) {
         const res = await pool.query(`
-          SELECT p.*, h.viewedAt, COALESCE(lc.count, 0) AS likes
+          SELECT p.*, h.viewedAt, COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar"
           FROM history h
           JOIN posts p ON p.id = h.postId
           LEFT JOIN (
             SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
           ) lc ON lc.postId = p.id
+          LEFT JOIN users u ON u."discordId" = p."uploaderDiscordId"
           WHERE h.userId = $1 AND p.status = 'published'
           ORDER BY h.viewedAt DESC
         `, [userId]);
@@ -192,12 +197,13 @@ export function createDatabase(config) {
 
       async listWatchlist(userId) {
         const res = await pool.query(`
-          SELECT p.*, w.addedAt, COALESCE(lc.count, 0) AS likes
+          SELECT p.*, w.addedAt, COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar"
           FROM watchlist w
           JOIN posts p ON p.id = w.postId
           LEFT JOIN (
             SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
           ) lc ON lc.postId = p.id
+          LEFT JOIN users u ON u."discordId" = p."uploaderDiscordId"
           WHERE w.userId = $1 AND p.status = 'published'
           ORDER BY w.addedAt DESC
         `, [userId]);
@@ -387,28 +393,31 @@ export function createDatabase(config) {
     VALUES (@filename, @type, @title, @description, @uploaderDiscordId, @uploaderName, @status, @editToken, @createdAt)
   `);
   const getPostStmt = db.prepare(`
-    SELECT p.*, COALESCE(lc.count, 0) AS likes
+    SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS uploaderAvatar
     FROM posts p
     LEFT JOIN (
       SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
     ) lc ON lc.postId = p.id
+    LEFT JOIN users u ON u.discordId = p.uploaderDiscordId
     WHERE p.id = ?
   `);
   const listPublishedStmt = db.prepare(`
-    SELECT p.*, COALESCE(lc.count, 0) AS likes
+    SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS uploaderAvatar
     FROM posts p
     LEFT JOIN (
       SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
     ) lc ON lc.postId = p.id
+    LEFT JOIN users u ON u.discordId = p.uploaderDiscordId
     WHERE p.status = 'published'
     ORDER BY p.id DESC
   `);
   const listTrendingStmt = db.prepare(`
-    SELECT p.*, COALESCE(lc.count, 0) AS likes
+    SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS uploaderAvatar
     FROM posts p
     LEFT JOIN (
       SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
     ) lc ON lc.postId = p.id
+    LEFT JOIN users u ON u.discordId = p.uploaderDiscordId
     WHERE p.status = 'published'
     ORDER BY lc.count DESC, p.createdAt DESC
     LIMIT 100
@@ -433,12 +442,13 @@ export function createDatabase(config) {
     ON CONFLICT(postId, userId) DO UPDATE SET viewedAt = excluded.viewedAt
   `);
   const listHistoryStmt = db.prepare(`
-    SELECT p.*, h.viewedAt, COALESCE(lc.count, 0) AS likes
+    SELECT p.*, h.viewedAt, COALESCE(lc.count, 0) AS likes, u.avatar AS uploaderAvatar
     FROM history h
     JOIN posts p ON p.id = h.postId
     LEFT JOIN (
       SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
     ) lc ON lc.postId = p.id
+    LEFT JOIN users u ON u.discordId = p.uploaderDiscordId
     WHERE h.userId = ? AND p.status = 'published'
     ORDER BY h.viewedAt DESC
   `);
@@ -450,12 +460,13 @@ export function createDatabase(config) {
   const removeWatchStmt = db.prepare('DELETE FROM watchlist WHERE postId = ? AND userId = ?');
   const hasWatchStmt = db.prepare('SELECT 1 FROM watchlist WHERE postId = ? AND userId = ?');
   const listWatchlistStmt = db.prepare(`
-    SELECT p.*, w.addedAt, COALESCE(lc.count, 0) AS likes
+    SELECT p.*, w.addedAt, COALESCE(lc.count, 0) AS likes, u.avatar AS uploaderAvatar
     FROM watchlist w
     JOIN posts p ON p.id = w.postId
     LEFT JOIN (
       SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
     ) lc ON lc.postId = p.id
+    LEFT JOIN users u ON u.discordId = p.uploaderDiscordId
     WHERE w.userId = ? AND p.status = 'published'
     ORDER BY w.addedAt DESC
   `);

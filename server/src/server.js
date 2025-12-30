@@ -94,14 +94,17 @@ app.use(express.static(publicDir));
 function signSession(user) {
 	const discordId = user.discordId ?? user.discordid ?? user.discord_id;
 	const username = user.username ?? user.name ?? 'Unknown';
-	return jwt.sign({ id: user.id, discordId, username }, jwtSecret, { expiresIn: '30d' });
+	const avatar = user.avatar ?? user.avatarUrl ?? user.picture ?? null;
+	return jwt.sign({ id: user.id, discordId, username, avatar }, jwtSecret, { expiresIn: '30d' });
 }
 
 function normalizeUser(user) {
 	if (!user) return undefined;
 	const discordId = user.discordId ?? user.discordid ?? user.discord_id;
 	if (!discordId) return undefined;
-	return { id: user.id, discordId, username: user.username ?? user.name ?? 'Unknown' };
+	const username = user.username ?? user.name ?? 'Unknown';
+	const avatar = user.avatar ?? user.avatarUrl ?? user.picture ?? null;
+	return { id: user.id, discordId, username, avatar };
 }
 
 async function authOptional(req, res, next) {
@@ -228,6 +231,7 @@ app.get('/api/posts', async (req, res) => {
 		likes: row.likes,
 		createdAt: row.createdAt,
 		uploaderName: row.uploaderName,
+		uploaderAvatar: row.uploaderAvatar || null,
 		liked: likedSet ? likedSet.has(Number(row.id)) : false
 	})) });
 });
@@ -246,6 +250,7 @@ app.get('/api/posts/trending', async (req, res) => {
 		likes: row.likes,
 		createdAt: row.createdAt,
 		uploaderName: row.uploaderName,
+		uploaderAvatar: row.uploaderAvatar || null,
 		liked: likedSet ? likedSet.has(Number(row.id)) : false
 	})) });
 });
@@ -265,6 +270,7 @@ app.get('/api/posts/liked', async (req, res) => {
 		likes: row.likes,
 		createdAt: row.createdAt,
 		uploaderName: row.uploaderName,
+		uploaderAvatar: row.uploaderAvatar || null,
 		liked: likedSet.has(Number(row.id))
 	})) });
 });
@@ -284,6 +290,7 @@ app.get('/api/posts/history', async (req, res) => {
 		likes: row.likes,
 		createdAt: row.createdAt,
 		uploaderName: row.uploaderName,
+		uploaderAvatar: row.uploaderAvatar || null,
 		liked: likedSet.has(Number(row.id))
 	})) });
 });
@@ -303,6 +310,7 @@ app.get('/api/posts/watchlater', async (req, res) => {
 		likes: row.likes,
 		createdAt: row.createdAt,
 		uploaderName: row.uploaderName,
+		uploaderAvatar: row.uploaderAvatar || null,
 		liked: likedSet.has(Number(row.id))
 	})) });
 });
@@ -335,6 +343,7 @@ app.get('/api/post/:id', async (req, res) => {
 		status: row.status,
 		uploaderDiscordId: row.uploaderDiscordId,
 		uploaderName: row.uploaderName,
+		uploaderAvatar: row.uploaderAvatar || null,
 		createdAt: row.createdAt,
 		fileUrl: storage.getUrl(row.filename),
 		format: row.format || 'long',

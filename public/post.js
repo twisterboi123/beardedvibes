@@ -5,6 +5,8 @@ const descriptionEl = document.getElementById('description');
 const typePill = document.getElementById('type-pill');
 const publishedAtEl = document.getElementById('published-at');
 const uploaderTag = document.getElementById('uploader-tag');
+const uploaderNameEl = document.getElementById('uploader-name');
+const uploaderAvatarEl = document.getElementById('uploader-avatar');
 const likeBtn = document.getElementById('like-btn');
 const likeCount = document.getElementById('like-count');
 const watchBtn = document.getElementById('watch-btn');
@@ -16,6 +18,14 @@ const commentHint = document.getElementById('comment-hint');
 const loginBtn = document.getElementById('login-btn');
 const logoutBtn = document.getElementById('logout-btn');
 const authLabel = document.getElementById('auth-label');
+const sessionUser = document.getElementById('session-user');
+const sessionAvatar = document.getElementById('session-avatar');
+const commentCountEl = document.getElementById('comment-count');
+const playerWrapper = document.querySelector('.player-wrapper');
+
+let videoEl = null;
+let hasRecordedView = false;
+let playOverlay = null;
 
 const state = {
   user: null,
@@ -23,6 +33,19 @@ const state = {
   liked: false,
   watchLater: false
 };
+
+function setAvatar(el, url, fallback) {
+  if (!el) return;
+  el.innerHTML = '';
+  if (url) {
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = fallback;
+    el.appendChild(img);
+    return;
+  }
+  el.textContent = (fallback || '?').slice(0, 2).toUpperCase();
+}
 
 function setStatus(text, type = 'info') {
   statusEl.textContent = text;
@@ -36,12 +59,48 @@ function renderPreview(data) {
     img.src = data.fileUrl;
     img.alt = data.title || 'Post preview';
     previewEl.appendChild(img);
+    videoEl = null;
   } else if (data.type === 'video') {
     const video = document.createElement('video');
     video.src = data.fileUrl;
-    video.controls = true;
+    video.controls = false;
+    video.preload = 'metadata';
     video.playsInline = true;
+    videoEl = video;
     previewEl.appendChild(video);
+
+    playOverlay = document.createElement('div');
+    playOverlay.className = 'play-overlay';
+    const playBtn = document.createElement('button');
+    playBtn.type = 'button';
+    playBtn.className = 'play-btn';
+    playBtn.textContent = '▶';
+    playOverlay.appendChild(playBtn);
+    previewEl.appendChild(playOverlay);
+
+    const startPlayback = () => {
+      if (!videoEl) return;
+      if (playOverlay) playOverlay.style.display = 'none';
+      if (playerWrapper) playerWrapper.classList.add('is-playing');
+      videoEl.controls = true;
+      videoEl.muted = false;
+      videoEl.play().catch(() => {});
+      if (!hasRecordedView && state.user) {
+        hasRecordedView = true;
+        recordView(state.postId).catch(() => {});
+      }
+    };
+
+    video.addEventListener('play', () => {
+      if (playOverlay) playOverlay.style.display = 'none';
+      if (playerWrapper) playerWrapper.classList.add('is-playing');
+    });
+
+    playBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      startPlayback();
+    });
+    previewEl.addEventListener('click', startPlayback);
   } else {
     previewEl.textContent = 'Unsupported file type';
   }
@@ -65,6 +124,7 @@ async function fetchComments(id) {
 
 function renderComments(list) {
   commentsList.innerHTML = '';
+  if (commentCountEl) commentCountEl.textContent = list.length;
   if (!list.length) {
     const empty = document.createElement('p');
     empty.textContent = 'No comments yet. Be the first!';
@@ -123,6 +183,8 @@ function updateAuthUi() {
     authLabel.textContent = `Logged in as ${state.user.username}`;
     loginBtn.style.display = 'none';
     logoutBtn.style.display = 'inline-flex';
+    if (sessionUser) sessionUser.style.display = 'flex';
+    setAvatar(sessionAvatar, state.user.avatar, state.user.username || 'User');
     commentText.disabled = false;
     commentSubmit.disabled = false;
     commentHint.textContent = `Commenting as ${state.user.username}`;
@@ -130,6 +192,7 @@ function updateAuthUi() {
     authLabel.textContent = 'Not logged in. Likes and comments require Discord.';
     loginBtn.style.display = 'inline-flex';
     logoutBtn.style.display = 'none';
+    if (sessionUser) sessionUser.style.display = 'none';
     commentText.disabled = true;
     commentSubmit.disabled = true;
     commentHint.textContent = 'Log in with Discord to comment.';
@@ -200,12 +263,18 @@ async function init() {
     const formatLabel = data.format === 'short' ? 'Short' : 'Long form';
     typePill.textContent = data.type === 'video' ? `Video • ${formatLabel}` : 'Image';
     publishedAtEl.textContent = `Published on ${new Date(data.createdAt).toLocaleString()}`;
-    uploaderTag.textContent = data.uploaderName ? `by ${data.uploaderName}` : 'Uploader unknown';
+    const uploaderName = data.uploaderName || 'Unknown uploader';
+    uploaderTag.textContent = data.uploaderDiscordId ? `@${data.uploaderDiscordId}` : 'Uploader unknown';
+    uploaderNameEl.textContent = uploaderName;
+    setAvatar(uploaderAvatarEl, data.uploaderAvatar, uploaderName);
     likeCount.textContent = data.likes ?? 0;
     updateLikeButton(Boolean(data.liked));
     // watch later initial state (optional; not provided by API yet)
     try {
-      if (state.user) await recordView(id);
+      if (state.user) {
+        await recordView(id);
+        hasRecordedView = true;
+      }
     } catch (_e) {}
     renderPreview(data);
     setStatus('Published and ready to watch.', 'success');

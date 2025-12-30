@@ -7,53 +7,75 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body class="watch-body">
-  <main class="watch-main">
+  <div class="watch-shell">
+    <header class="watch-header">
+      <div class="brand">BeardedVibes • Watch</div>
+      <div class="session" id="auth-bar">
+        <div class="session-user" id="session-user" style="display:none;">
+          <div class="avatar" id="session-avatar"></div>
+          <span id="auth-label">Checking your session…</span>
+        </div>
+        <div class="session-actions">
+          <button id="login-btn" class="ghost">Log in with Discord</button>
+          <button id="logout-btn" class="ghost" style="display:none;">Log out</button>
+        </div>
+      </div>
+    </header>
+
     <div id="loading-post" class="loading-overlay">
       <div class="spinner"></div>
     </div>
-    <h1 id="title">BeardedVibes</h1>
-    <p class="lead">Watch uploads from the BeardedVibes community. Log in with Discord to like and comment.</p>
-    <section class="auth-bar" id="auth-bar">
-      <p class="small" id="auth-label">Checking your session…</p>
-      <div class="actions">
-        <button id="login-btn">Log in with Discord</button>
-        <button id="logout-btn" class="ghost" style="display:none;">Log out</button>
-      </div>
-    </section>
-    <div id="status" class="status">Loading…</div>
 
-    <section class="preview" id="preview">
-      <p>Loading preview…</p>
-    </section>
+    <main class="watch-grid">
+      <section class="watch-left">
+        <div class="player-wrapper">
+          <div id="preview" class="preview player-surface">
+            <p>Loading preview…</p>
+          </div>
+        </div>
 
-    <section class="card">
-      <div class="meta">
-        <span class="pill" id="type-pill">—</span>
-        <span id="published-at">—</span>
-        <span id="uploader-tag" class="muted"></span>
-      </div>
-      <p id="description">Loading…</p>
-      <div class="actions">
-        <button id="like-btn" class="like-btn" aria-label="Like this post">
-          <span>❤️ Like</span>
-          <span class="like-count" id="like-count">0</span>
-        </button>
-        <button id="watch-btn" class="ghost" aria-label="Save to Watch Later">⏰ Watch Later</button>
-      </div>
-    </section>
+        <div class="watch-meta">
+          <div class="title-row">
+            <span class="pill" id="type-pill">—</span>
+            <h1 id="title">BeardedVibes</h1>
+          </div>
+          <p class="published" id="published-at">—</p>
+          <div class="uploader">
+            <div class="avatar" id="uploader-avatar"></div>
+            <div class="uploader-info">
+              <div class="name" id="uploader-name">Unknown uploader</div>
+              <div class="tag" id="uploader-tag">—</div>
+            </div>
+          </div>
+          <div class="actions">
+            <button id="like-btn" class="like-btn" aria-label="Like this post">
+              <span>❤️ Like</span>
+              <span class="like-count" id="like-count">0</span>
+            </button>
+            <button id="watch-btn" class="ghost" aria-label="Save to Watch Later">⏰ Watch Later</button>
+          </div>
+          <p id="description" class="description">Loading…</p>
+        </div>
+      </section>
 
-    <section class="card comments">
-      <h3>Comments</h3>
-      <form id="comment-form" class="comment-form">
-        <textarea id="comment-text" maxlength="800" placeholder="Share your thoughts" disabled></textarea>
-        <p class="small" id="comment-hint">Log in with Discord to comment.</p>
-        <button type="submit" id="comment-submit" disabled>Post comment</button>
-      </form>
-      <div class="comment-list" id="comments-list"></div>
-    </section>
-
-    <p class="footer">Only published posts appear here. Drafts remain private until published.</p>
-  </main>
+      <aside class="watch-sidebar">
+        <div id="status" class="status">Loading…</div>
+        <section class="card comments">
+          <div class="comments-header">
+            <h3>Comments</h3>
+            <span class="comment-count" id="comment-count">0</span>
+          </div>
+          <form id="comment-form" class="comment-form">
+            <textarea id="comment-text" maxlength="800" placeholder="Share your thoughts" disabled></textarea>
+            <p class="small" id="comment-hint">Log in with Discord to comment.</p>
+            <button type="submit" id="comment-submit" disabled>Post comment</button>
+          </form>
+          <div class="comment-list" id="comments-list"></div>
+        </section>
+        <p class="footer">Published videos only. Drafts remain private.</p>
+      </aside>
+    </main>
+  </div>
   <script src="/post.js"></script>
 </body>
 </html>
