@@ -1,0 +1,15 @@
+{
+  "name": "media-bot",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.16.2",
+    "dotenv": "^16.4.5",
+    "mime-types": "^2.1.35",
+    "undici": "^6.19.8"
+  }
+}

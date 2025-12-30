@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Upload</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main>
+    <h1>Edit & Publish</h1>
+    <div id="status" class="status"></div>
+
+    <section class="preview" id="preview">
+      <p>Loading preview…</p>
+    </section>
+
+    <section>
+      <label for="title">Title</label>
+      <input type="text" id="title" maxlength="200" placeholder="Give your upload a title">
+
+      <label for="description">Description</label>
+      <textarea id="description" maxlength="2000" placeholder="Describe your upload"></textarea>
+    </section>
+
+    <section>
+      <button id="publish" disabled>Save & Publish</button>
+    </section>
+
+    <p class="footer">Drafts are private. Publishing makes the post visible on the public page.</p>
+  </main>
+  <script src="/edit.js"></script>
+</body>
+</html>

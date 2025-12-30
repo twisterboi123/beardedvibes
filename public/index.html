@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BeardedVibes</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="youtube-layout">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-toggle" id="menu-toggle">☰</button>
+      <div class="logo">
+        <span class="logo-icon">🔥</span>
+        <span class="logo-text">BeardedVibes</span>
+      </div>
+    </div>
+    <div class="topbar-center">
+      <div class="search-box">
+        <input type="text" placeholder="Search" id="search-input">
+        <button class="search-btn">🔍</button>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button id="login-btn" class="auth-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+        </svg>
+        Sign in
+      </button>
+      <div id="user-menu" class="user-menu" style="display:none;">
+        <span id="user-avatar" class="user-avatar">👤</span>
+        <button id="logout-btn" class="ghost-btn">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <aside class="sidebar" id="sidebar">
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-feed="home">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Home</span>
+      </a>
+      <a href="#" class="nav-item" data-feed="trending">
+        <span class="nav-icon">⚡</span>
+        <span class="nav-label">Trending</span>
+      </a>
+      <a href="#" class="nav-item" data-feed="subscriptions">
+        <span class="nav-icon">📺</span>
+        <span class="nav-label">Subscriptions</span>
+      </a>
+      <hr class="nav-divider">
+      <a href="#" class="nav-item" data-feed="history">
+        <span class="nav-icon">🕐</span>
+        <span class="nav-label">History</span>
+      </a>
+      <a href="#" class="nav-item" data-feed="watchlater">
+        <span class="nav-icon">⏰</span>
+        <span class="nav-label">Watch Later</span>
+      </a>
+      <a href="#" class="nav-item" data-feed="liked">
+        <span class="nav-icon">👍</span>
+        <span class="nav-label">Liked</span>
+      </a>
+    </nav>
+  </aside>
+
+  <main class="content">
+    <div class="category-tabs">
+      <button class="tab active">All</button>
+      <button class="tab">Gaming</button>
+      <button class="tab">Music</button>
+      <button class="tab">Live</button>
+      <button class="tab">News</button>
+    </div>
+
+    <div id="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading videos...</p>
+    </div>
+    <div id="grid" class="video-grid" style="display:none;"></div>
+    <div id="empty" class="empty-state" style="display:none;">No uploads yet. Send something in Discord!</div>
+  </main>
+
+  <script>
+    const loginBtn = document.getElementById('login-btn');
+    const loading = document.getElementById('loading');
+    const logoutBtn = document.getElementById('logout-btn');
+    const userMenu = document.getElementById('user-menu');
+    const userAvatar = document.getElementById('user-avatar');
+    const menuToggle = document.getElementById('menu-toggle');
+    const sidebar = document.getElementById('sidebar');
+    const grid = document.getElementById('grid');
+    const empty = document.getElementById('empty');
+    let currentUser = null;
+    let currentFeed = 'home';
+
+    menuToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('collapsed');
+    });
+
+    loginBtn.addEventListener('click', () => {
+      // Navigate directly so the server can show a friendly setup page
+      window.location.href = '/api/auth/login';
+    });
+    logoutBtn.addEventListener('click', async () => {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/';
+    });
+
+    function updateAuthUi() {
+      if (currentUser) {
+        loginBtn.style.display = 'none';
+        userMenu.style.display = 'flex';
+        userAvatar.textContent = currentUser.username.charAt(0).toUpperCase();
+      } else {
+        loginBtn.style.display = 'block';
+        userMenu.style.display = 'none';
+      }
+    }
+
+    function formatDuration(seconds) {
+      if (!seconds || seconds === 0) return '0:00';
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function render(posts) {
+      grid.innerHTML = '';
+      // Filter out posts with Unknown uploader
+      const filtered = posts.filter(p => p.uploaderName && p.uploaderName !== 'Unknown');
+      if (!filtered.length) {
+        empty.style.display = 'block';
+        return;
+      }
+      empty.style.display = 'none';
+      filtered.forEach((p) => {
+        const card = document.createElement('div');
+        card.className = 'video-card';
+        card.onclick = () => window.location.href = `/post/${p.id}`;
+
+        const thumbWrap = document.createElement('div');
+        thumbWrap.className = 'video-thumbnail';
+        
+        const thumb = document.createElement(p.type === 'video' ? 'video' : 'img');
+        thumb.src = p.fileUrl;
+        thumb.loading = 'lazy';
+        if (p.type === 'video') {
+          thumb.muted = true;
+          thumb.preload = 'metadata';
+          thumbWrap.addEventListener('mouseenter', () => {
+            thumb.play().catch(() => {});
+          });
+          thumbWrap.addEventListener('mouseleave', () => {
+            thumb.pause();
+            thumb.currentTime = 0;
+          });
+        }
+        
+        const duration = document.createElement('span');
+        duration.className = 'duration-badge';
+        duration.textContent = formatDuration(p.duration || 0);
+        
+        thumbWrap.append(thumb, duration);
+
+        const info = document.createElement('div');
+        info.className = 'video-info';
+
+        const avatar = document.createElement('div');
+        avatar.className = 'channel-avatar';
+        avatar.textContent = (p.uploaderName || 'U').charAt(0).toUpperCase();
+
+        const details = document.createElement('div');
+        details.className = 'video-details';
+
+        const title = document.createElement('h3');
+        title.className = 'video-title';
+        title.textContent = p.title || 'Untitled';
+
+        const channelName = document.createElement('div');
+        channelName.className = 'channel-name';
+        channelName.textContent = p.uploaderName || 'Unknown';
+
+        const meta = document.createElement('div');
+        meta.className = 'video-meta';
+        meta.innerHTML = `<span>${p.likes || 0} likes</span> • <span>${new Date(p.createdAt).toLocaleDateString()}</span>`;
+
+        details.append(title, channelName, meta);
+        info.append(avatar, details);
+        card.append(thumbWrap, info);
+        grid.appendChild(card);
+      });
+    }
+
+    async function load() {
+      return loadFeed('home');
+    }
+
+    function setActiveNav(feed) {
+      document.querySelectorAll('.sidebar .nav-item').forEach((el) => {
+        el.classList.toggle('active', el.dataset.feed === feed);
+      });
+    }
+
+    async function fetchPostsForFeed(feed) {
+      const endpoint = (
+        feed === 'home' ? '/api/posts' :
+        feed === 'trending' ? '/api/posts/trending' :
+        feed === 'liked' ? '/api/posts/liked' :
+        feed === 'history' ? '/api/posts/history' :
+        feed === 'watchlater' ? '/api/posts/watchlater' :
+        '/api/posts'
+      );
+      const res = await fetch(endpoint);
+      if (!res.ok) {
+        if (res.status === 401) {
+          window.location.href = '/api/auth/login';
+          return { posts: [] };
+        }
+        throw new Error('Failed to load posts');
+      }
+      return res.json();
+    }
+
+    async function loadFeed(feed) {
+      try {
+        currentFeed = feed;
+        setActiveNav(feed);
+        loading.style.display = 'flex';
+        grid.style.display = 'none';
+        empty.style.display = 'none';
+
+        const data = await fetchPostsForFeed(feed);
+
+        setTimeout(() => {
+          loading.style.display = 'none';
+          grid.style.display = 'grid';
+          render(data.posts || []);
+
+          // Animate cards in
+          const cards = document.querySelectorAll('.video-card');
+          cards.forEach((card, i) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            setTimeout(() => {
+              card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+              card.style.opacity = '1';
+              card.style.transform = 'translateY(0)';
+            }, i * 50);
+          });
+        }, 300);
+      } catch (err) {
+        loading.style.display = 'none';
+        empty.textContent = '⚠️ Could not load videos. Please try again.';
+        empty.style.display = 'flex';
+      }
+    }
+
+    async function loadUser() {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (!res.ok) throw new Error('Not logged in');
+        const data = await res.json();
+        currentUser = data.user;
+      } catch (_err) {
+        currentUser = null;
+      }
+      updateAuthUi();
+    }
+
+    async function bootstrap() {
+      await loadUser();
+      await load();
+
+      // Wire sidebar navigation
+      document.querySelectorAll('.sidebar .nav-item').forEach((item) => {
+        item.addEventListener('click', (e) => {
+          e.preventDefault();
+          const feed = item.dataset.feed;
+          if (['liked', 'history', 'watchlater'].includes(feed) && !currentUser) {
+            window.location.href = '/api/auth/login';
+            return;
+          }
+          loadFeed(feed || 'home');
+        });
+      });
+    }
+
+    bootstrap();
+  </script>
+</body>
+</html>

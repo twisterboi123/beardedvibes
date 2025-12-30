@@ -1,0 +1,29 @@
+# Environment variables
+.env
+
+# Dependencies
+node_modules/
+bot/node_modules/
+server/node_modules/
+
+# Database files
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+data.sqlite
+
+# Uploads (will use Cloudinary in production)
+server/uploads/
+uploads/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

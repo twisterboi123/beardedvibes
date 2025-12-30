@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BeardedVibes - Post</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main>
+    <div id="loading-post" class="loading-overlay">
+      <div class="spinner"></div>
+    </div>
+    <h1 id="title">BeardedVibes</h1>
+    <p class="lead">Watch uploads from the BeardedVibes community. Log in with Discord to like and comment.</p>
+    <section class="auth-bar" id="auth-bar">
+      <p class="small" id="auth-label">Checking your session…</p>
+      <div class="actions">
+        <button id="login-btn">Log in with Discord</button>
+        <button id="logout-btn" class="ghost" style="display:none;">Log out</button>
+      </div>
+    </section>
+    <div id="status" class="status">Loading…</div>
+
+    <section class="preview" id="preview">
+      <p>Loading preview…</p>
+    </section>
+
+    <section class="card">
+      <div class="meta">
+        <span class="pill" id="type-pill">—</span>
+        <span id="published-at">—</span>
+        <span id="uploader-tag" class="muted"></span>
+      </div>
+      <p id="description">Loading…</p>
+      <div class="actions">
+        <button id="like-btn" class="like-btn" aria-label="Like this post">
+          <span>❤️ Like</span>
+          <span class="like-count" id="like-count">0</span>
+        </button>
+        <button id="watch-btn" class="ghost" aria-label="Save to Watch Later">⏰ Watch Later</button>
+      </div>
+    </section>
+
+    <section class="card comments">
+      <h3>Comments</h3>
+      <form id="comment-form" class="comment-form">
+        <textarea id="comment-text" maxlength="800" placeholder="Share your thoughts" disabled></textarea>
+        <p class="small" id="comment-hint">Log in with Discord to comment.</p>
+        <button type="submit" id="comment-submit" disabled>Post comment</button>
+      </form>
+      <div class="comment-list" id="comments-list"></div>
+    </section>
+
+    <p class="footer">Only published posts appear here. Drafts remain private until published.</p>
+  </main>
+  <script src="/post.js"></script>
+</body>
+</html>
