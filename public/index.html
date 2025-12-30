@@ -67,12 +67,10 @@
   </aside>
 
   <main class="content">
-    <div class="category-tabs">
-      <button class="tab active">All</button>
-      <button class="tab">Gaming</button>
-      <button class="tab">Music</button>
-      <button class="tab">Live</button>
-      <button class="tab">News</button>
+    <div class="category-tabs" id="format-tabs">
+      <button class="tab active" data-format="all">All</button>
+      <button class="tab" data-format="short">Shorts</button>
+      <button class="tab" data-format="long">Long form</button>
     </div>
 
     <div id="loading" class="loading-state">
@@ -96,6 +94,7 @@
     const empty = document.getElementById('empty');
     let currentUser = null;
     let currentFeed = 'home';
+    let currentFormat = 'all';
 
     menuToggle.addEventListener('click', () => {
       sidebar.classList.toggle('collapsed');
@@ -134,8 +133,8 @@
 
     function render(posts) {
       grid.innerHTML = '';
-      // Filter out posts with Unknown uploader
-      const filtered = posts.filter(p => p.uploaderName && p.uploaderName !== 'Unknown');
+      const filtered = posts
+        .filter((p) => currentFormat === 'all' ? true : (p.format || 'long') === currentFormat);
       if (!filtered.length) {
         empty.style.display = 'block';
         return;
@@ -238,11 +237,13 @@
         empty.style.display = 'none';
 
         const data = await fetchPostsForFeed(feed);
+        // cache for format filtering without refetching
+        window.__lastPosts = data.posts || [];
 
         setTimeout(() => {
           loading.style.display = 'none';
           grid.style.display = 'grid';
-          render(data.posts || []);
+          render(window.__lastPosts);
 
           // Animate cards in
           const cards = document.querySelectorAll('.video-card');
@@ -263,6 +264,21 @@
       }
     }
 
+    function wireFormatTabs() {
+      const tabs = document.querySelectorAll('#format-tabs .tab');
+      tabs.forEach((tab) => {
+        tab.addEventListener('click', (e) => {
+          e.preventDefault();
+          const fmt = tab.dataset.format || 'all';
+          currentFormat = fmt;
+          tabs.forEach((t) => t.classList.toggle('active', t === tab));
+          // Re-render with the already-fetched posts currently in the DOM
+          const cardsData = window.__lastPosts || [];
+          render(cardsData);
+        });
+      });
+    }
+
     async function loadUser() {
       try {
         const res = await fetch('/api/auth/me');
@@ -278,6 +294,7 @@
     async function bootstrap() {
       await loadUser();
       await load();
+      wireFormatTabs();
 
       // Wire sidebar navigation
       document.querySelectorAll('.sidebar .nav-item').forEach((item) => {

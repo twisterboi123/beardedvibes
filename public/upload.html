@@ -42,11 +42,14 @@
           <textarea name="description" maxlength="2000" rows="3" placeholder="Add a description"></textarea>
         </label>
 
-        <fieldset class="field radio-group">
-          <legend>Format</legend>
-          <label><input type="radio" name="format" value="short" required> Short (vertical / quick)</label>
-          <label><input type="radio" name="format" value="long" checked> Long form</label>
-        </fieldset>
+        <div class="field">
+          <span>Format</span>
+          <div class="category-tabs" id="format-toggle">
+            <button type="button" class="tab" data-format="short">Short (vertical / quick)</button>
+            <button type="button" class="tab active" data-format="long">Long form</button>
+          </div>
+          <input type="hidden" name="format" id="format-input" value="long">
+        </div>
 
         <label class="field checkbox-row">
           <input type="checkbox" name="publish" id="publish-now" checked>

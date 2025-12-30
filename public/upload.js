@@ -9,6 +9,8 @@ const fileInput = document.getElementById('file');
 const fileLabel = document.getElementById('file-label');
 const dropzone = document.getElementById('dropzone');
 const publishCheckbox = document.getElementById('publish-now');
+const formatInput = document.getElementById('format-input');
+const formatButtons = document.querySelectorAll('#format-toggle .tab');
 
 homeBtn.addEventListener('click', () => window.location.href = '/');
 logoutBtn.addEventListener('click', async () => {
@@ -37,6 +39,14 @@ fileInput.addEventListener('change', () => {
   } else {
     fileLabel.textContent = 'Drag & drop or click to choose (mp4, webm, jpg, png, webp)';
   }
+});
+
+formatButtons.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const fmt = btn.dataset.format === 'short' ? 'short' : 'long';
+    formatInput.value = fmt;
+    formatButtons.forEach((b) => b.classList.toggle('active', b === btn));
+  });
 });
 
 function setStatus(text, type = 'info') {
@@ -76,10 +86,9 @@ form.addEventListener('submit', async (e) => {
     return;
   }
 
-  const format = (new FormData(form)).get('format') === 'short' ? 'short' : 'long';
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('format', format);
+  formData.append('format', formatInput.value === 'short' ? 'short' : 'long');
   formData.append('title', form.title.value);
   formData.append('description', form.description.value);
   formData.append('publish', publishCheckbox.checked ? 'true' : 'false');
