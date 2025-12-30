@@ -753,7 +753,14 @@ export function createDatabase(config) {
     },
 
     async getUserByDiscordId(discordId) {
-      return db.prepare('SELECT id, discordId, username, avatar, isAdmin, isBanned, isVerified FROM users WHERE discordId = ? LIMIT 1').get(discordId) || null;
+      const user = db.prepare('SELECT id, discordId, username, avatar, isAdmin, isBanned, isVerified FROM users WHERE discordId = ? LIMIT 1').get(discordId) || null;
+      if (!user) return null;
+      return {
+        ...user,
+        isAdmin: Boolean(user.isAdmin),
+        isBanned: Boolean(user.isBanned),
+        isVerified: Boolean(user.isVerified)
+      };
     },
 
     async updateUserProfile(discordId, { username, avatar }) {
@@ -802,7 +809,13 @@ export function createDatabase(config) {
     },
 
     async getAllUsers() {
-      return db.prepare('SELECT id, discordId, username, avatar, isAdmin, isBanned, isVerified, createdAt FROM users ORDER BY createdAt DESC').all();
+      const users = db.prepare('SELECT id, discordId, username, avatar, isAdmin, isBanned, isVerified, createdAt FROM users ORDER BY createdAt DESC').all();
+      return users.map(u => ({
+        ...u,
+        isAdmin: Boolean(u.isAdmin),
+        isBanned: Boolean(u.isBanned),
+        isVerified: Boolean(u.isVerified)
+      }));
     }
   };
 }
