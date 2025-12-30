@@ -945,15 +945,78 @@ app.get('/api/admin/users', requireAdmin, async (req, res) => {
 	return res.json({ users });
 });
 
-app.delete('/api/post/:id', requireAdmin, async (req, res) => {
+// Delete post - allowed for admins OR the owner of the post
+app.delete('/api/post/:id', requireAuth, async (req, res) => {
 	const id = Number(req.params.id);
 	if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid post id' });
 
 	const post = await db.getPost(id);
 	if (!post) return res.status(404).json({ error: 'Post not found' });
 
+	// Allow if admin OR if user is the owner of the post
+	const isOwner = req.user.discordId === post.uploaderDiscordId;
+	const isAdmin = req.user.isAdmin;
+	
+	if (!isOwner && !isAdmin) {
+		return res.status(403).json({ error: 'You can only delete your own posts' });
+	}
+
+	// If admin is deleting someone else's post, send a warning notification
+	const reason = req.body?.reason || 'Content violated community guidelines';
+	if (isAdmin && !isOwner) {
+		const uploader = await db.getUserByDiscordId(post.uploaderDiscordId);
+		if (uploader) {
+			await db.createNotification(
+				uploader.id,
+				'warning',
+				'Your content was removed',
+				`Your post "${post.title || 'Untitled'}" was removed by a moderator. Reason: ${reason}. Please review our community guidelines to avoid future removals.`
+			);
+		}
+	}
+
 	await db.deletePost(id);
 	return res.json({ success: true, message: 'Post deleted' });
+});
+
+// Notification endpoints
+app.get('/api/notifications', requireAuth, async (req, res) => {
+	const notifications = await db.getNotifications(req.user.id);
+	const unreadCount = await db.getUnreadCount(req.user.id);
+	return res.json({ notifications, unreadCount });
+});
+
+app.post('/api/notifications/:id/read', requireAuth, async (req, res) => {
+	const id = Number(req.params.id);
+	if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid notification id' });
+	await db.markNotificationRead(id, req.user.id);
+	return res.json({ success: true });
+});
+
+app.post('/api/notifications/read-all', requireAuth, async (req, res) => {
+	await db.markAllNotificationsRead(req.user.id);
+	return res.json({ success: true });
+});
+
+// Admin send warning to user
+app.post('/api/admin/user/:discordId/warn', requireAdmin, async (req, res) => {
+	const discordId = req.params.discordId;
+	if (!discordId) return res.status(400).json({ error: 'Invalid user' });
+	
+	const { title, message } = req.body;
+	if (!message) return res.status(400).json({ error: 'Message is required' });
+	
+	const user = await db.getUserByDiscordId(discordId);
+	if (!user) return res.status(404).json({ error: 'User not found' });
+	
+	await db.createNotification(
+		user.id,
+		'warning',
+		title || 'Warning from moderators',
+		message
+	);
+	
+	return res.json({ success: true, message: 'Warning sent to user' });
 });
 
 app.post('/api/admin/user/:discordId/ban', requireAdmin, async (req, res) => {

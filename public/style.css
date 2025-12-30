@@ -257,8 +257,8 @@ body.youtube-layout {
   background: #65b8ff;
 }
 
-/* Subscribe button style */
-.subscribe-btn {
+/* Follow button style */
+.follow-btn {
   background: #f1f1f1;
   border: none;
   color: #0f0f0f;
@@ -270,13 +270,127 @@ body.youtube-layout {
   transition: all var(--transition-fast);
 }
 
-.subscribe-btn:hover {
+.follow-btn:hover {
   background: #d9d9d9;
 }
 
-.subscribe-btn.subscribed {
+.follow-btn.following {
   background: rgba(255, 255, 255, 0.1);
   color: var(--yt-text);
+}
+
+/* Notification Bell */
+.notification-bell {
+  position: relative;
+}
+
+.bell-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 8px;
+  position: relative;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.bell-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.bell-btn .badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: #ff2d55;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.notification-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 360px;
+  max-height: 400px;
+  background: var(--yt-bg-secondary);
+  border: 1px solid var(--yt-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  z-index: 1000;
+}
+
+.notif-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--yt-border);
+}
+
+.notif-header h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.notif-list {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.notif-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--yt-border);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.notif-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.notif-item.unread {
+  background: rgba(62, 166, 255, 0.1);
+}
+
+.notif-item.warning {
+  border-left: 3px solid #ff2d55;
+}
+
+.notif-item .title {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+  color: var(--yt-text);
+}
+
+.notif-item .message {
+  font-size: 13px;
+  color: var(--yt-text-secondary);
+  line-height: 1.4;
+}
+
+.notif-item .time {
+  font-size: 11px;
+  color: var(--yt-text-secondary);
+  margin-top: 6px;
+}
+
+.notif-empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--yt-text-secondary);
 }
 
 /* Credits footer */
@@ -1723,6 +1837,21 @@ button:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 16px 34
 .like-btn { display: inline-flex; align-items: center; gap: 10px; }
 .like-btn.active { background: linear-gradient(135deg, #ff2d55, #ff6a00); box-shadow: 0 16px 36px rgba(255, 64, 0, 0.45); }
 .like-count { font-weight: 700; color: #ffd7bf; }
+.delete-btn { display: inline-flex; align-items: center; gap: 8px; background: rgba(255, 45, 85, 0.15); border: 1px solid rgba(255, 45, 85, 0.3); color: #ff4d6a; padding: 10px 16px; border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+.delete-btn:hover { background: rgba(255, 45, 85, 0.25); border-color: rgba(255, 45, 85, 0.5); }
+
+/* Recommended Videos Section */
+.recommended-section { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--yt-border); }
+.recommended-section h3 { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: var(--yt-text); }
+.recommended-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+.recommended-card { cursor: pointer; border-radius: 12px; overflow: hidden; background: rgba(255, 255, 255, 0.02); transition: all 0.2s; }
+.recommended-card:hover { background: rgba(255, 255, 255, 0.05); transform: translateY(-2px); }
+.recommended-card .thumb { width: 100%; aspect-ratio: 16/9; background: #181818; overflow: hidden; border-radius: 8px; }
+.recommended-card .thumb img, .recommended-card .thumb video { width: 100%; height: 100%; object-fit: cover; }
+.recommended-card .info { padding: 10px 4px; }
+.recommended-card .title { font-size: 14px; font-weight: 500; color: var(--yt-text); line-height: 1.3; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.recommended-card .meta { font-size: 12px; color: var(--yt-text-secondary); display: flex; align-items: center; gap: 6px; }
+.recommended-card .channel { font-size: 12px; color: var(--yt-text-secondary); }
 
 .comments { margin-top: 18px; }
 .comment-list { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }

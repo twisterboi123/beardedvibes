@@ -11,6 +11,7 @@ const followerCountEl = document.getElementById('follower-count');
 const likeBtn = document.getElementById('like-btn');
 const likeCount = document.getElementById('like-count');
 const watchBtn = document.getElementById('watch-btn');
+const deleteBtn = document.getElementById('delete-btn');
 const followBtn = document.getElementById('follow-btn');
 const commentsList = document.getElementById('comments-list');
 const commentForm = document.getElementById('comment-form');
@@ -35,7 +36,8 @@ const state = {
   liked: false,
   watchLater: false,
   following: false,
-  uploaderDiscordId: null
+  uploaderDiscordId: null,
+  uploaderName: null
 };
 
 // Create lightbox elements
@@ -301,8 +303,8 @@ function updateAuthUi() {
 function updateFollowUi(following, followerCount) {
   state.following = following;
   if (followBtn) {
-    followBtn.classList.toggle('active', following);
-    followBtn.textContent = following ? 'Subscribed' : 'Subscribe';
+    followBtn.classList.toggle('following', following);
+    followBtn.textContent = following ? 'Following' : 'Follow';
   }
   if (followerCountEl && typeof followerCount === 'number') {
     followerCountEl.textContent = `${followerCount} follower${followerCount === 1 ? '' : 's'}`;
@@ -384,7 +386,7 @@ async function init() {
     typePill.textContent = data.type === 'video' ? `Video • ${formatLabel}` : 'Image';
     publishedAtEl.textContent = `Published on ${new Date(data.createdAt).toLocaleString()}`;
     const uploaderName = data.uploaderName || 'Unknown uploader';
-    uploaderTag.textContent = data.uploaderDiscordId ? `@${data.uploaderDiscordId}` : 'Uploader unknown';
+    uploaderTag.textContent = data.uploaderName ? `@${data.uploaderName.toLowerCase().replace(/\s+/g, '')}` : 'Uploader unknown';
     uploaderNameEl.innerHTML = '';
     const nameSpan = document.createElement('span');
     nameSpan.textContent = uploaderName;
@@ -396,7 +398,14 @@ async function init() {
       uploaderNameEl.appendChild(badge);
     }
     state.uploaderDiscordId = data.uploaderDiscordId || null;
+    state.uploaderName = data.uploaderName || null;
     setAvatar(uploaderAvatarEl, data.uploaderAvatar, uploaderName);
+    
+    // Show delete button if user is owner or admin
+    if (state.user && (state.user.discordId === state.uploaderDiscordId || state.user.isAdmin)) {
+      deleteBtn.style.display = 'inline-flex';
+    }
+    
     if (state.uploaderDiscordId) {
       uploaderNameEl.href = `/profile.html?id=${state.uploaderDiscordId}`;
       uploaderNameEl.style.cursor = 'pointer';
@@ -473,6 +482,30 @@ async function init() {
       }
     });
 
+    deleteBtn.addEventListener('click', async () => {
+      if (!state.user) return;
+      
+      const confirmDelete = confirm('Are you sure you want to delete this post? This action cannot be undone.');
+      if (!confirmDelete) return;
+      
+      deleteBtn.disabled = true;
+      deleteBtn.textContent = 'Deleting...';
+      
+      try {
+        const res = await fetch(`/api/post/${id}`, { method: 'DELETE' });
+        const result = await res.json();
+        
+        if (!res.ok) throw new Error(result.error || 'Failed to delete');
+        
+        alert('Post deleted successfully!');
+        window.location.href = '/';
+      } catch (err) {
+        setStatus(err.message, 'error');
+        deleteBtn.disabled = false;
+        deleteBtn.textContent = '🗑️ Delete';
+      }
+    });
+
     followBtn.addEventListener('click', async () => {
       if (!state.user) {
         window.location.href = '/api/auth/login';
@@ -517,6 +550,9 @@ async function init() {
         commentSubmit.textContent = 'Post comment';
       }
     });
+    
+    // Load recommended videos
+    loadRecommendedVideos(id);
   } catch (err) {
     loadingOverlay.style.display = 'none';
     setStatus(err.message, 'error');
@@ -525,6 +561,74 @@ async function init() {
     descriptionEl.textContent = '';
     likeBtn.disabled = true;
     commentSubmit.disabled = true;
+  }
+}
+
+async function loadRecommendedVideos(currentPostId) {
+  const recommendedContainer = document.getElementById('recommended-videos');
+  if (!recommendedContainer) return;
+  
+  try {
+    const res = await fetch('/api/posts');
+    if (!res.ok) return;
+    
+    const data = await res.json();
+    const posts = (data.posts || [])
+      .filter(p => p.id !== Number(currentPostId)) // Exclude current post
+      .slice(0, 8); // Show up to 8 recommended videos
+    
+    if (posts.length === 0) {
+      recommendedContainer.innerHTML = '<p style="color: var(--yt-text-secondary); font-size: 14px;">No other videos yet.</p>';
+      return;
+    }
+    
+    recommendedContainer.innerHTML = '';
+    posts.forEach(post => {
+      const card = document.createElement('div');
+      card.className = 'recommended-card';
+      card.onclick = () => window.location.href = `/post/${post.id}`;
+      
+      const thumb = document.createElement('div');
+      thumb.className = 'thumb';
+      
+      if (post.type === 'video') {
+        const video = document.createElement('video');
+        video.src = post.fileUrl;
+        video.muted = true;
+        video.preload = 'metadata';
+        thumb.appendChild(video);
+        
+        card.addEventListener('mouseenter', () => video.play().catch(() => {}));
+        card.addEventListener('mouseleave', () => { video.pause(); video.currentTime = 0; });
+      } else {
+        const img = document.createElement('img');
+        img.src = post.fileUrl;
+        img.alt = post.title || 'Image';
+        img.loading = 'lazy';
+        thumb.appendChild(img);
+      }
+      
+      const info = document.createElement('div');
+      info.className = 'info';
+      
+      const title = document.createElement('div');
+      title.className = 'title';
+      title.textContent = post.title || 'Untitled';
+      
+      const channel = document.createElement('div');
+      channel.className = 'channel';
+      channel.textContent = post.uploaderName || 'Unknown';
+      
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.textContent = `${post.likes || 0} likes`;
+      
+      info.append(title, channel, meta);
+      card.append(thumb, info);
+      recommendedContainer.appendChild(card);
+    });
+  } catch (err) {
+    console.error('Failed to load recommended videos:', err);
   }
 }
 

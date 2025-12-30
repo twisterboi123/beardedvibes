@@ -398,7 +398,7 @@
       <div class="bio" id="bio" style="display:none;"></div>
       <div class="stats">
         <div><b id="videos">0</b> videos</div>
-        <div><b id="followers">0</b> subscribers</div>
+        <div><b id="followers">0</b> followers</div>
         <div><b id="likes">0</b> likes</div>
       </div>
     </div>
@@ -514,7 +514,7 @@ async function loadProfile(){
       badge.innerHTML = '<svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>Verified';
       username.appendChild(badge);
     }
-    handle.textContent = '@' + (profileData.discordId || 'user');
+    handle.textContent = '@' + (profileData.username || 'user').toLowerCase().replace(/\s+/g, '');
     videos.textContent = profileData.totalVideos || 0;
     followers.textContent = profileData.followerCount || 0;
     likes.textContent = profileData.totalLikes || 0;

@@ -396,6 +396,7 @@
 						</div>
 					</div>
 					<div class="admin-item-actions">
+						<button class="admin-btn warning" onclick="warnUser('${user.discordId}', '${escapeHtml(user.username)}')">⚠️ Warn</button>
 						${user.isBanned 
 							? `<button class="admin-btn success" onclick="toggleBan('${user.discordId}', false)">Unban</button>`
 							: `<button class="admin-btn danger" onclick="toggleBan('${user.discordId}', true)">Ban</button>`
@@ -411,6 +412,32 @@
 					</div>
 				</div>
 			`).join('');
+		}
+
+		// Warn user
+		async function warnUser(discordId, username) {
+			const message = prompt(`Send a warning to ${username}:\n\nEnter your warning message (e.g., "Your video was removed for violating community guidelines"):`);
+			
+			if (!message || !message.trim()) {
+				return; // User cancelled or empty message
+			}
+
+			try {
+				const res = await fetch(`/api/admin/user/${discordId}/warn`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ message: message.trim() })
+				});
+				const data = await res.json();
+
+				if (res.ok) {
+					showSuccess(`Warning sent to ${username}`);
+				} else {
+					showError(data.error || 'Failed to send warning');
+				}
+			} catch (err) {
+				showError('Error: ' + err.message);
+			}
 		}
 
 		// Ban/Unban user

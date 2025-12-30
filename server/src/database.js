@@ -107,6 +107,17 @@ export function createDatabase(config) {
             UNIQUE(followerId, followingDiscordId)
           );
         `);
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS notifications (
+            id SERIAL PRIMARY KEY,
+            userId INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            type TEXT NOT NULL,
+            title TEXT NOT NULL,
+            message TEXT NOT NULL,
+            read BOOLEAN NOT NULL DEFAULT FALSE,
+            createdAt TIMESTAMPTZ NOT NULL DEFAULT NOW()
+          );
+        `);
         await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS uploaderName TEXT DEFAULT ''`);
         await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS format TEXT DEFAULT 'long'`);
         await pool.query(`ALTER TABLE comments ADD COLUMN IF NOT EXISTS userId INTEGER REFERENCES users(id)`);
@@ -177,7 +188,10 @@ export function createDatabase(config) {
 
       async listPublished() {
         const res = await pool.query(`
-          SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar", COALESCE(u.isverified, false) AS "uploaderVerified"
+          SELECT p.id, p.filename, p.type, p.title, p.description, p.format,
+                 p.uploaderdiscordid AS "uploaderDiscordId", p.uploadername AS "uploaderName",
+                 p.createdat AS "createdAt", p.status,
+                 COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar", COALESCE(u.isverified, false) AS "uploaderVerified"
           FROM posts p
           LEFT JOIN (
             SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
@@ -192,7 +206,10 @@ export function createDatabase(config) {
       async searchPosts(query) {
         const searchTerm = `%${query}%`;
         const res = await pool.query(`
-          SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar", COALESCE(u.isverified, false) AS "uploaderVerified"
+          SELECT p.id, p.filename, p.type, p.title, p.description, p.format,
+                 p.uploaderdiscordid AS "uploaderDiscordId", p.uploadername AS "uploaderName",
+                 p.createdat AS "createdAt", p.status,
+                 COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar", COALESCE(u.isverified, false) AS "uploaderVerified"
           FROM posts p
           LEFT JOIN (
             SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
@@ -207,7 +224,10 @@ export function createDatabase(config) {
 
       async listTrending() {
         const res = await pool.query(`
-          SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar", COALESCE(u.isverified, false) AS "uploaderVerified"
+          SELECT p.id, p.filename, p.type, p.title, p.description, p.format,
+                 p.uploaderdiscordid AS "uploaderDiscordId", p.uploadername AS "uploaderName",
+                 p.createdat AS "createdAt", p.status,
+                 COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar", COALESCE(u.isverified, false) AS "uploaderVerified"
           FROM posts p
           LEFT JOIN (
             SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
@@ -222,7 +242,10 @@ export function createDatabase(config) {
 
       async listLiked(userId) {
         const res = await pool.query(`
-          SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar", COALESCE(u.isverified, false) AS "uploaderVerified"
+          SELECT p.id, p.filename, p.type, p.title, p.description, p.format,
+                 p.uploaderdiscordid AS "uploaderDiscordId", p.uploadername AS "uploaderName",
+                 p.createdat AS "createdAt", p.status,
+                 COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar", COALESCE(u.isverified, false) AS "uploaderVerified"
           FROM likes l
           JOIN posts p ON p.id = l.postId
           LEFT JOIN (
@@ -237,7 +260,10 @@ export function createDatabase(config) {
 
       async listHistory(userId) {
         const res = await pool.query(`
-          SELECT p.*, h.viewedAt, COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar", COALESCE(u.isverified, false) AS "uploaderVerified"
+          SELECT p.id, p.filename, p.type, p.title, p.description, p.format,
+                 p.uploaderdiscordid AS "uploaderDiscordId", p.uploadername AS "uploaderName",
+                 p.createdat AS "createdAt", p.status, h.viewedAt AS "viewedAt",
+                 COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar", COALESCE(u.isverified, false) AS "uploaderVerified"
           FROM history h
           JOIN posts p ON p.id = h.postId
           LEFT JOIN (
@@ -252,7 +278,10 @@ export function createDatabase(config) {
 
       async listWatchlist(userId) {
         const res = await pool.query(`
-          SELECT p.*, w.addedAt, COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar", COALESCE(u.isverified, false) AS "uploaderVerified"
+          SELECT p.id, p.filename, p.type, p.title, p.description, p.format,
+                 p.uploaderdiscordid AS "uploaderDiscordId", p.uploadername AS "uploaderName",
+                 p.createdat AS "createdAt", p.status, w.addedAt AS "addedAt",
+                 COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar", COALESCE(u.isverified, false) AS "uploaderVerified"
           FROM watchlist w
           JOIN posts p ON p.id = w.postId
           LEFT JOIN (
@@ -446,6 +475,39 @@ export function createDatabase(config) {
           totalLikes: likesRes.rows[0]?.total || 0,
           followerCount: followersRes.rows[0]?.count || 0
         };
+      },
+
+      // Notification methods
+      async createNotification(userId, type, title, message) {
+        const res = await pool.query(
+          `INSERT INTO notifications (userId, type, title, message) VALUES ($1, $2, $3, $4) RETURNING *`,
+          [userId, type, title, message]
+        );
+        return res.rows[0];
+      },
+
+      async getNotifications(userId) {
+        const res = await pool.query(
+          `SELECT * FROM notifications WHERE userId = $1 ORDER BY createdAt DESC LIMIT 50`,
+          [userId]
+        );
+        return res.rows;
+      },
+
+      async getUnreadCount(userId) {
+        const res = await pool.query(
+          `SELECT COUNT(*)::INT AS count FROM notifications WHERE userId = $1 AND read = FALSE`,
+          [userId]
+        );
+        return res.rows[0]?.count || 0;
+      },
+
+      async markNotificationRead(id, userId) {
+        await pool.query(`UPDATE notifications SET read = TRUE WHERE id = $1 AND userId = $2`, [id, userId]);
+      },
+
+      async markAllNotificationsRead(userId) {
+        await pool.query(`UPDATE notifications SET read = TRUE WHERE userId = $1`, [userId]);
       }
     };
   }
@@ -553,6 +615,18 @@ export function createDatabase(config) {
       createdAt TEXT NOT NULL DEFAULT (datetime('now')),
       UNIQUE(followerId, followingDiscordId),
       FOREIGN KEY (followerId) REFERENCES users(id) ON DELETE CASCADE
+    );
+  `);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId INTEGER NOT NULL,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      read INTEGER NOT NULL DEFAULT 0,
+      createdAt TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
     );
   `);
   db.exec('CREATE INDEX IF NOT EXISTS idx_comments_postId ON comments(postId)');
@@ -866,6 +940,30 @@ export function createDatabase(config) {
         isBanned: Boolean(u.isBanned),
         isVerified: Boolean(u.isVerified)
       }));
+    },
+
+    // Notification methods
+    async createNotification(userId, type, title, message) {
+      const stmt = db.prepare(`INSERT INTO notifications (userId, type, title, message) VALUES (?, ?, ?, ?)`);
+      const result = stmt.run(userId, type, title, message);
+      return { id: result.lastInsertRowid, userId, type, title, message, read: false };
+    },
+
+    async getNotifications(userId) {
+      return db.prepare(`SELECT * FROM notifications WHERE userId = ? ORDER BY createdAt DESC LIMIT 50`).all(userId);
+    },
+
+    async getUnreadCount(userId) {
+      const result = db.prepare(`SELECT COUNT(*) AS count FROM notifications WHERE userId = ? AND read = 0`).get(userId);
+      return result?.count || 0;
+    },
+
+    async markNotificationRead(id, userId) {
+      db.prepare(`UPDATE notifications SET read = 1 WHERE id = ? AND userId = ?`).run(id, userId);
+    },
+
+    async markAllNotificationsRead(userId) {
+      db.prepare(`UPDATE notifications SET read = 1 WHERE userId = ?`).run(userId);
     }
   };
 }

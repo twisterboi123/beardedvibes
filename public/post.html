@@ -50,7 +50,7 @@
               <div class="tag" id="uploader-tag">—</div>
               <div class="followers" id="follower-count">—</div>
             </div>
-            <button id="follow-btn" class="subscribe-btn">Subscribe</button>
+            <button id="follow-btn" class="follow-btn">Follow</button>
           </div>
           <div class="actions">
             <button id="like-btn" class="like-btn" aria-label="Like this post">
@@ -58,8 +58,15 @@
               <span class="like-count" id="like-count">0</span>
             </button>
             <button id="watch-btn" class="ghost" aria-label="Save to Watch Later">⏰ Watch Later</button>
+            <button id="delete-btn" class="delete-btn" style="display:none;" aria-label="Delete this post">🗑️ Delete</button>
           </div>
           <p id="description" class="description">Loading…</p>
+          
+          <!-- Recommended Videos Section -->
+          <section class="recommended-section">
+            <h3>More videos</h3>
+            <div id="recommended-videos" class="recommended-grid"></div>
+          </section>
         </div>
       </section>
 

@@ -149,7 +149,7 @@
       }
       const tag = document.createElement('div');
       tag.className = 'tag';
-      tag.textContent = post.uploaderDiscordId ? `@${post.uploaderDiscordId}` : '';
+      tag.textContent = post.uploaderName ? `@${post.uploaderName.toLowerCase().replace(/\s+/g, '')}` : '';
       uploaderInfo.append(name, tag);
       uploaderRow.append(avatar, uploaderInfo);
 
@@ -185,7 +185,7 @@
         return;
       }
       const data = await res.json();
-      const shorts = (data.posts || []).filter((p) => (p.format || 'long') === 'short');
+      const shorts = (data.posts || []).filter((p) => p.format === 'short' && p.type === 'video');
       if (!shorts.length) {
         emptyEl.style.display = 'flex';
         return;
