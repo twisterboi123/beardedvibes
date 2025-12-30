@@ -799,7 +799,6 @@
 <nav class="profile-tabs">
   <div class="tab active" data-tab="videos">Videos</div>
   <div class="tab" data-tab="shorts">Shorts</div>
-  <div class="tab" data-tab="photos">Photos</div>
 </nav>
 
 <div class="profile-content">
@@ -839,7 +838,6 @@
 
   <div id="videosTab" class="grid"></div>
   <div id="shortsTab" class="grid" style="display:none"></div>
-  <div id="photosTab" class="grid" style="display:none"></div>
 </div>
 </main>
 
@@ -892,7 +890,6 @@ const menuBtn = document.getElementById('menu-btn');
 const topAvatar = document.getElementById('top-avatar');
 const videosTab = document.getElementById('videosTab');
 const shortsTab = document.getElementById('shortsTab');
-const photosTab = document.getElementById('photosTab');
 
 menuBtn.addEventListener('click', () => {
   sidebar.classList.toggle('collapsed');
@@ -1047,7 +1044,6 @@ function setAvatar(el, url, name){
 function renderContent(){
   videosTab.innerHTML = "";
   shortsTab.innerHTML = "";
-  photosTab.innerHTML = "";
 
   if(!profileData || !profileData.videos) return;
 
@@ -1058,9 +1054,6 @@ function renderContent(){
   });
   const shortList = profileData.videos.filter(v => {
     return v.format === 'short' && v.type === 'video';
-  });
-  const photoList = profileData.videos.filter(v => {
-    return v.format === 'photo' || v.type === 'image';
   });
 
   videoList.forEach(v=>{
@@ -1073,14 +1066,8 @@ function renderContent(){
     shortsTab.appendChild(card);
   });
 
-  photoList.forEach(v=>{
-    const card = createCard(v);
-    photosTab.appendChild(card);
-  });
-
   if(videoList.length === 0) videosTab.innerHTML = '<div class="empty-message"><p>No videos yet</p></div>';
   if(shortList.length === 0) shortsTab.innerHTML = '<div class="empty-message"><p>No shorts yet</p></div>';
-  if(photoList.length === 0) photosTab.innerHTML = '<div class="empty-message"><p>No photos yet</p></div>';
 }
 
 function createCard(v){
@@ -1110,7 +1097,6 @@ document.querySelectorAll(".tab").forEach(tab=>{
     tab.classList.add("active");
     videosTab.style.display = tab.dataset.tab==="videos"?"grid":"none";
     shortsTab.style.display = tab.dataset.tab==="shorts"?"grid":"none";
-    photosTab.style.display = tab.dataset.tab==="photos"?"grid":"none";
   };
 });
 

@@ -35,33 +35,18 @@ function formatFileSize(bytes) {
 
 // Update format toggle based on file type
 function updateFormatOptions(file) {
-  const isImage = file && file.type.startsWith('image/');
   const isVideo = file && file.type.startsWith('video/');
   
   formatButtons.forEach((btn) => {
     const fmt = btn.dataset.format;
-    if (isImage) {
-      // For images: only show photo, auto-select it
-      btn.style.display = fmt === 'photo' ? '' : 'none';
-      btn.classList.toggle('active', fmt === 'photo');
-    } else if (isVideo) {
-      // For videos: show short/long, hide photo
-      btn.style.display = fmt === 'photo' ? 'none' : '';
+    // Only show short/long options for videos
+    btn.style.display = (fmt === 'short' || fmt === 'long') ? '' : 'none';
+    if (isVideo && formatInput.value !== 'short' && formatInput.value !== 'long') {
       // Default to long form for videos
-      if (formatInput.value === 'photo') {
-        formatInput.value = 'long';
-        btn.classList.toggle('active', fmt === 'long');
-      }
-    } else {
-      // No file: show all options
-      btn.style.display = '';
+      formatInput.value = 'long';
+      btn.classList.toggle('active', fmt === 'long');
     }
   });
-  
-  // Auto-set format for images
-  if (isImage) {
-    formatInput.value = 'photo';
-  }
 }
 
 // Show file preview

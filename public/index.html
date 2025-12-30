@@ -65,10 +65,6 @@
         <span class="nav-icon">🎬</span>
         <span class="nav-label">Shorts</span>
       </a>
-      <a href="#" class="nav-item" data-feed="photos">
-        <span class="nav-icon">📷</span>
-        <span class="nav-label">Photos</span>
-      </a>
       <hr class="nav-divider">
       <a href="#" class="nav-item" data-feed="history">
         <span class="nav-icon">🕐</span>
@@ -354,16 +350,13 @@
 
     function render(posts) {
       grid.innerHTML = '';
-      // On home/trending feeds, 'all' means only videos (exclude shorts and photos)
-      // On photos feed, show only photos
+      // Filter to show only videos (exclude images)
       const filtered = posts
         .filter((p) => {
           const fmt = p.format || 'long';
-          const isPhoto = fmt === 'photo' || p.type === 'image';
           const isShort = fmt === 'short' && p.type === 'video';
           const isLongVideo = fmt === 'long' && p.type === 'video';
           
-          if (currentFeed === 'photos') return isPhoto;
           if (currentFormat === 'all') return isLongVideo; // Only long-form videos on home
           if (currentFormat === 'short') return isShort;
           if (currentFormat === 'long') return isLongVideo;
@@ -485,7 +478,6 @@
       const endpoint = (
         feed === 'home' ? '/api/posts' :
         feed === 'trending' ? '/api/posts/trending' :
-        feed === 'photos' ? '/api/posts/photos' :
         feed === 'liked' ? '/api/posts/liked' :
         feed === 'history' ? '/api/posts/history' :
         feed === 'watchlater' ? '/api/posts/watchlater' :
