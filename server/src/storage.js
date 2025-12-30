@@ -12,8 +12,10 @@ export function createStorage(config) {
     
     return {
       async upload(filePath, filename) {
+        // Remove extension from filename to avoid Cloudinary adding it again
+        const nameWithoutExt = path.parse(filename).name;
         const result = await cloudinary.uploader.upload(filePath, {
-          public_id: filename,
+          public_id: nameWithoutExt,
           resource_type: 'auto',
           folder: 'beardedvibes'
         });

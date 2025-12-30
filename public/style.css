@@ -296,8 +296,7 @@ body.youtube-layout {
   grid-area: content;
   padding: 24px;
   overflow-y: auto;
-  max-width: 1920px;
-  margin: 0 auto;
+  width: 100%;
 }
 
 .category-tabs {

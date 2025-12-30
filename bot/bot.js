@@ -51,7 +51,11 @@ client.once(Events.ClientReady, (c) => {
 function isAllowedAttachment(attachment) {
   const ext = path.extname(attachment.name || '').toLowerCase();
   const mimetype = attachment.contentType || mime.lookup(ext) || '';
-  return ALLOWED_EXTENSIONS.has(ext) && ALLOWED_MIME.has(mimetype);
+  const isAllowed = ALLOWED_EXTENSIONS.has(ext) && ALLOWED_MIME.has(mimetype);
+  if (!isAllowed) {
+    console.log(`Attachment rejected: name=${attachment.name}, ext=${ext}, contentType=${attachment.contentType}, mimeLookup=${mime.lookup(ext)}, finalMime=${mimetype}, extAllowed=${ALLOWED_EXTENSIONS.has(ext)}, mimeAllowed=${ALLOWED_MIME.has(mimetype)}`);
+  }
+  return isAllowed;
 }
 
 
@@ -75,29 +79,41 @@ async function sendToBackend(buffer, attachment, uploaderDiscordId, uploaderDisc
   form.append('uploaderDiscordId', uploaderDiscordId);
   form.append('uploaderDiscordName', uploaderDiscordName || 'Unknown');
 
+  console.log(`Sending to ${uploadEndpoint} with mimetype=${mimetype}, filename=${attachment.name}`);
   const response = await fetch(uploadEndpoint, {
     method: 'POST',
     body: form
   });
 
+  console.log(`Backend response status: ${response.status} ${response.statusText}`);
   if (!response.ok) {
     const text = await response.text();
+    console.log(`Backend error response body: ${text}`);
     throw new Error(`Backend error ${response.status}: ${text}`);
   }
 
-  return response.json();
+  const result = await response.json();
+  console.log(`Backend response JSON:`, result);
+  return result;
 }
 
 
 async function handleAttachment(message, attachment) {
   try {
+    console.log(`Processing attachment: name=${attachment.name}, contentType=${attachment.contentType}, url=${attachment.url}`);
     const buffer = await downloadAttachment(attachment.url);
+    console.log(`Downloaded buffer size: ${buffer.length} bytes`);
     const result = await sendToBackend(buffer, attachment, message.author.id, message.author.username);
+    console.log(`Backend response:`, result);
     const editLink = `${frontendBase}/edit/${result.id}?token=${result.editToken}`;
 
-    await message.author.send(
-       `Thanks! Your upload is saved as draft. Edit and publish here: ${editLink}`
-    );
+    try {
+      await message.author.send(
+         `Thanks! Your upload is saved as draft. Edit and publish here: ${editLink}`
+      );
+    } catch (dmErr) {
+      console.error('Failed to send DM to user', dmErr);
+    }
 
     console.log(`Uploaded attachment ${attachment.id} for user ${message.author.id}`);
   } catch (err) {
