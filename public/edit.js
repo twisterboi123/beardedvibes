@@ -53,6 +53,8 @@ async function init() {
   const id = pathParts[pathParts.length - 1];
   const token = new URLSearchParams(window.location.search).get('token');
 
+  console.log('Edit page init:', { pathname: window.location.pathname, pathParts, id, token: token ? 'present' : 'missing' });
+
   if (!token) {
     setStatus('Missing edit token in URL.', 'error');
     publishBtn.disabled = true;
@@ -61,7 +63,9 @@ async function init() {
 
   try {
     setStatus('Loading draft…');
+    console.log(`Fetching post ${id} with token...`);
     const data = await fetchPost(id, token);
+    console.log('Post data received:', data);
     renderPreview(data);
     titleInput.value = data.title || '';
     descriptionInput.value = data.description || '';
@@ -80,6 +84,7 @@ async function init() {
     });
     setStatus('Ready to edit.');
   } catch (err) {
+    console.error('Failed to load draft:', err);
     setStatus(err.message, 'error');
     publishBtn.disabled = true;
   }

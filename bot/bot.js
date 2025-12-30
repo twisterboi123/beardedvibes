@@ -107,17 +107,32 @@ async function handleAttachment(message, attachment) {
     console.log(`Backend response:`, result);
     const editLink = `${frontendBase}/edit/${result.id}?token=${result.editToken}`;
 
+    // Send confirmation in channel
+    try {
+      await message.reply('✅ Upload received! Check your DMs for the edit link.');
+    } catch (replyErr) {
+      console.error('Failed to send channel confirmation', replyErr);
+    }
+
+    // Send DM with edit link
     try {
       await message.author.send(
          `Thanks! Your upload is saved as draft. Edit and publish here: ${editLink}`
       );
+      console.log(`Sent DM to user ${message.author.id} with edit link for post ${result.id}`);
     } catch (dmErr) {
       console.error('Failed to send DM to user', dmErr);
+      try {
+        await message.reply(`Upload successful (ID: ${result.id}), but I couldn't DM you. Enable DMs and try again or use this link: ${editLink}`);
+      } catch (fallbackErr) {
+        console.error('Failed to send fallback message', fallbackErr);
+      }
     }
 
-    console.log(`Uploaded attachment ${attachment.id} for user ${message.author.id}`);
+    console.log(`Successfully processed attachment ${attachment.id} for user ${message.author.id}, post ID: ${result.id}`);
   } catch (err) {
     console.error('Failed to process attachment', err);
+    console.error('Error details:', err.message, err.cause);
     try {
       await message.reply('Sorry, I could not process that attachment. Please try again.');
     } catch (sendErr) {
