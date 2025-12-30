@@ -44,6 +44,9 @@ export function createDatabase(config) {
         await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS isAdmin BOOLEAN DEFAULT FALSE`);
         await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS isBanned BOOLEAN DEFAULT FALSE`);
         await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS isVerified BOOLEAN DEFAULT FALSE`);
+        await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT DEFAULT ''`);
+        await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS banner TEXT DEFAULT ''`);
+        await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profileColor TEXT DEFAULT '#3ea6ff'`);
         await pool.query(`
           CREATE TABLE IF NOT EXISTS posts (
             id SERIAL PRIMARY KEY,
@@ -384,25 +387,28 @@ export function createDatabase(config) {
       },
 
       async getUserByDiscordId(discordId) {
-        const res = await pool.query('SELECT id, discordId AS "discordId", username, avatar, isAdmin AS "isAdmin", isBanned AS "isBanned", isVerified AS "isVerified" FROM users WHERE discordId = $1 LIMIT 1', [discordId]);
+        const res = await pool.query('SELECT id, discordId AS "discordId", username, avatar, isAdmin AS "isAdmin", isBanned AS "isBanned", isVerified AS "isVerified", bio, banner, profileColor AS "profileColor" FROM users WHERE discordId = $1 LIMIT 1', [discordId]);
         return res.rows[0] || null;
       },
 
-      async updateUserProfile(discordId, { username, avatar }) {
+      async updateUserProfile(discordId, { username, avatar, bio, banner, profileColor }) {
         const res = await pool.query(
           `UPDATE users
            SET username = COALESCE($2, username),
                avatar = COALESCE($3, avatar),
+               bio = COALESCE($4, bio),
+               banner = COALESCE($5, banner),
+               profileColor = COALESCE($6, profileColor),
                lastSeenAt = NOW()
            WHERE discordId = $1
-           RETURNING id, discordId AS "discordId", username, avatar, isAdmin AS "isAdmin", isBanned AS "isBanned", isVerified AS "isVerified"`,
-          [discordId, username ?? null, avatar ?? null]
+           RETURNING id, discordId AS "discordId", username, avatar, isAdmin AS "isAdmin", isBanned AS "isBanned", isVerified AS "isVerified", bio, banner, profileColor AS "profileColor"`,
+          [discordId, username ?? null, avatar ?? null, bio ?? null, banner ?? null, profileColor ?? null]
         );
         return res.rows[0] || null;
       },
 
       async getAllUsers() {
-        const res = await pool.query('SELECT id, discordId AS "discordId", username, avatar, isAdmin AS "isAdmin", isBanned AS "isBanned", isVerified AS "isVerified", createdAt AS "createdAt" FROM users ORDER BY createdAt DESC');
+        const res = await pool.query('SELECT id, discordId AS "discordId", username, avatar, isAdmin AS "isAdmin", isBanned AS "isBanned", isVerified AS "isVerified", bio, banner, profileColor AS "profileColor", createdAt AS "createdAt" FROM users ORDER BY createdAt DESC');
         return res.rows;
       },
 
@@ -470,6 +476,15 @@ export function createDatabase(config) {
   }
   if (!tableInfo.some(col => col.name === 'isVerified')) {
     db.exec('ALTER TABLE users ADD COLUMN isVerified INTEGER DEFAULT 0');
+  }
+  if (!tableInfo.some(col => col.name === 'bio')) {
+    db.exec("ALTER TABLE users ADD COLUMN bio TEXT DEFAULT ''");
+  }
+  if (!tableInfo.some(col => col.name === 'banner')) {
+    db.exec("ALTER TABLE users ADD COLUMN banner TEXT DEFAULT ''");
+  }
+  if (!tableInfo.some(col => col.name === 'profileColor')) {
+    db.exec("ALTER TABLE users ADD COLUMN profileColor TEXT DEFAULT '#3ea6ff'");
   }
   db.exec(`
     CREATE TABLE IF NOT EXISTS posts (
@@ -785,7 +800,7 @@ export function createDatabase(config) {
     },
 
     async getUserByDiscordId(discordId) {
-      const user = db.prepare('SELECT id, discordId, username, avatar, isAdmin, isBanned, isVerified FROM users WHERE discordId = ? LIMIT 1').get(discordId) || null;
+      const user = db.prepare('SELECT id, discordId, username, avatar, isAdmin, isBanned, isVerified, bio, banner, profileColor FROM users WHERE discordId = ? LIMIT 1').get(discordId) || null;
       if (!user) return null;
       return {
         ...user,
@@ -795,16 +810,19 @@ export function createDatabase(config) {
       };
     },
 
-    async updateUserProfile(discordId, { username, avatar }) {
+    async updateUserProfile(discordId, { username, avatar, bio, banner, profileColor }) {
       const stmt = db.prepare(`
         UPDATE users
         SET username = COALESCE(@username, username),
             avatar = COALESCE(@avatar, avatar),
+            bio = COALESCE(@bio, bio),
+            banner = COALESCE(@banner, banner),
+            profileColor = COALESCE(@profileColor, profileColor),
             lastSeenAt = datetime('now')
         WHERE discordId = @discordId
-        RETURNING id, discordId, username, avatar, isAdmin, isBanned, isVerified
+        RETURNING id, discordId, username, avatar, isAdmin, isBanned, isVerified, bio, banner, profileColor
       `);
-      return stmt.get({ discordId, username: username ?? null, avatar: avatar ?? null }) || null;
+      return stmt.get({ discordId, username: username ?? null, avatar: avatar ?? null, bio: bio ?? null, banner: banner ?? null, profileColor: profileColor ?? null }) || null;
     },
 
     async getUserProfile(discordId) {

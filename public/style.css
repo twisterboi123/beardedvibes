@@ -890,11 +890,13 @@ section { margin-bottom: 28px; }
   padding: 0;
   background: #050204;
   min-height: 260px;
+  max-height: 80vh;
   box-shadow: inset 0 0 32px rgba(255, 82, 30, 0.2);
   position: relative;
   overflow: hidden;
 }
-.preview img, .preview video { width: 100%; height: 100%; max-height: none; border-radius: 0; object-fit: cover; }
+.preview video { width: 100%; height: 100%; max-height: none; border-radius: 0; object-fit: cover; }
+.preview img { width: 100%; height: auto; max-height: 80vh; border-radius: 0; object-fit: contain; }
 
 .status {
   padding: 12px 14px;

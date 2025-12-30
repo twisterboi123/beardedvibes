@@ -332,7 +332,7 @@ app.get('/api/posts/trending', async (req, res) => {
 
 // Photos feed: only photos
 app.get('/api/posts/photos', async (req, res) => {
-	const rows = await db.listPosts();
+	const rows = await db.listPublished();
 	const photos = rows.filter(row => row.format === 'photo');
 	const likedSet = req.user ? new Set(await db.getUserLikes(req.user.id)) : null;
 	return res.json({ posts: photos.map((row) => ({
@@ -526,6 +526,9 @@ app.patch('/api/me/profile', requireAuth, (req, res) => {
 
 		const requestedName = String(req.body?.username || '').trim().slice(0, 80);
 		const avatarUrlFromBody = req.body?.avatarUrl ? String(req.body.avatarUrl).trim() : null;
+		const bio = req.body?.bio !== undefined ? String(req.body.bio).trim().slice(0, 500) : undefined;
+		const banner = req.body?.banner ? String(req.body.banner).trim() : undefined;
+		const profileColor = req.body?.profileColor ? String(req.body.profileColor).trim() : undefined;
 
 		let avatarUrl = avatarUrlFromBody || null;
 
@@ -538,14 +541,17 @@ app.patch('/api/me/profile', requireAuth, (req, res) => {
 			}
 		}
 
-		if (!requestedName && !avatarUrl) {
+		if (!requestedName && !avatarUrl && bio === undefined && !banner && !profileColor) {
 			return res.status(400).json({ error: 'Nothing to update' });
 		}
 
 		try {
 			const updated = await db.updateUserProfile(req.user.discordId, {
 				username: requestedName || undefined,
-				avatar: avatarUrl || undefined
+				avatar: avatarUrl || undefined,
+				bio: bio,
+				banner: banner,
+				profileColor: profileColor
 			});
 
 			if (!updated) return res.status(404).json({ error: 'User not found' });

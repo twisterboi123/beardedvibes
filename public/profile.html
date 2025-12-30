@@ -7,6 +7,14 @@
 <link rel="stylesheet" href="/style.css">
 <style>
 /* Profile Page Styles */
+.profile-banner {
+  width: 100%;
+  height: 200px;
+  background-size: cover;
+  background-position: center;
+  background-color: #1a1a2e;
+}
+
 .profile-header {
   background: linear-gradient(180deg, #1a1a2e 0%, #0f0f0f 100%);
   border-bottom: 1px solid var(--yt-border);
@@ -19,6 +27,14 @@
   display: flex;
   gap: 20px;
   align-items: center;
+}
+
+.bio {
+  color: var(--yt-text-secondary);
+  font-size: 14px;
+  margin-top: 8px;
+  max-width: 500px;
+  line-height: 1.5;
 }
 
 .profile-pfp {
@@ -372,12 +388,14 @@
 </aside>
 
 <main class="content" style="padding: 0;">
-<section class="profile-header">
+<div id="profile-banner" class="profile-banner" style="display:none;"></div>
+<section class="profile-header" id="profile-header-section">
   <div class="profile-inner">
     <div class="profile-pfp" id="pfp">U</div>
     <div class="profile-info">
       <h1 id="username">Loading…</h1>
       <div class="handle" id="handle">@user</div>
+      <div class="bio" id="bio" style="display:none;"></div>
       <div class="stats">
         <div><b id="videos">0</b> videos</div>
         <div><b id="followers">0</b> subscribers</div>
@@ -404,8 +422,23 @@
         <input id="nameInput" type="text" maxlength="80" placeholder="Your display name">
       </div>
       <div class="form-group">
+        <label for="bioInput">Bio</label>
+        <textarea id="bioInput" maxlength="500" placeholder="Tell people about yourself" rows="3" style="width:100%; padding:12px; background:var(--yt-bg); border:1px solid var(--yt-border); border-radius:8px; color:var(--yt-text); font-size:14px; resize:vertical;"></textarea>
+      </div>
+      <div class="form-group">
         <label for="avatarInput">Profile Picture</label>
         <input id="avatarInput" type="file" accept="image/*">
+      </div>
+      <div class="form-group">
+        <label for="bannerInput">Banner Image URL</label>
+        <input id="bannerInput" type="text" placeholder="https://example.com/banner.jpg">
+      </div>
+      <div class="form-group">
+        <label for="colorInput">Profile Accent Color</label>
+        <div style="display:flex; gap:12px; align-items:center;">
+          <input id="colorInput" type="color" value="#3ea6ff" style="width:60px; height:40px; border:none; background:none; cursor:pointer;">
+          <span id="colorPreview" style="padding:8px 16px; border-radius:20px; font-weight:600; font-size:13px;">Preview</span>
+        </div>
       </div>
       <div class="form-actions">
         <button type="submit" class="btn">Save Changes</button>
@@ -485,6 +518,31 @@ async function loadProfile(){
     videos.textContent = profileData.totalVideos || 0;
     followers.textContent = profileData.followerCount || 0;
     likes.textContent = profileData.totalLikes || 0;
+
+    // Show bio if exists
+    const bioEl = document.getElementById('bio');
+    if (profileData.bio) {
+      bioEl.textContent = profileData.bio;
+      bioEl.style.display = 'block';
+    } else {
+      bioEl.style.display = 'none';
+    }
+
+    // Show banner if exists
+    const bannerEl = document.getElementById('profile-banner');
+    if (profileData.banner) {
+      bannerEl.style.backgroundImage = `url(${profileData.banner})`;
+      bannerEl.style.display = 'block';
+    } else {
+      bannerEl.style.display = 'none';
+    }
+
+    // Apply profile color
+    const headerSection = document.getElementById('profile-header-section');
+    if (profileData.profileColor) {
+      headerSection.style.background = `linear-gradient(180deg, ${profileData.profileColor}22 0%, #0f0f0f 100%)`;
+      pfp.style.boxShadow = `0 4px 20px ${profileData.profileColor}50`;
+    }
 
     setAvatar(pfp, profileData.avatar, profileData.username);
 
@@ -582,9 +640,25 @@ editBtn.onclick = () => {
   
   if(!isShowing && profileData){
     document.getElementById('nameInput').value = profileData.username || '';
+    document.getElementById('bioInput').value = profileData.bio || '';
+    document.getElementById('bannerInput').value = profileData.banner || '';
+    document.getElementById('colorInput').value = profileData.profileColor || '#3ea6ff';
+    updateColorPreview();
     form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 };
+
+// Color picker preview
+const colorInput = document.getElementById('colorInput');
+const colorPreview = document.getElementById('colorPreview');
+
+function updateColorPreview() {
+  const color = colorInput.value;
+  colorPreview.style.background = color;
+  colorPreview.style.color = '#fff';
+  colorPreview.textContent = color;
+}
+colorInput.addEventListener('input', updateColorPreview);
 
 document.getElementById('cancelEdit').onclick = () => {
   document.getElementById('editForm').style.display = 'none';
@@ -597,12 +671,25 @@ document.getElementById('profileForm').onsubmit = async (e) => {
   
   const formData = new FormData();
   const name = document.getElementById('nameInput').value.trim();
+  const bio = document.getElementById('bioInput').value.trim();
+  const banner = document.getElementById('bannerInput').value.trim();
+  const profileColor = document.getElementById('colorInput').value;
   const avatar = document.getElementById('avatarInput').files[0];
   
   if(name && name !== profileData.username) formData.append('username', name);
+  if(bio !== (profileData.bio || '')) formData.append('bio', bio);
+  if(banner !== (profileData.banner || '')) formData.append('banner', banner);
+  if(profileColor !== (profileData.profileColor || '#3ea6ff')) formData.append('profileColor', profileColor);
   if(avatar) formData.append('avatar', avatar);
   
-  if(!formData.has('username') && !formData.has('avatar')){
+  // Check if there are any changes
+  let hasChanges = false;
+  for (const pair of formData.entries()) {
+    hasChanges = true;
+    break;
+  }
+  
+  if(!hasChanges){
     status.textContent = 'No changes to save';
     return;
   }
