@@ -26,7 +26,7 @@
         <div>
           <p class="eyebrow">Creator Studio</p>
           <h1>Upload a video</h1>
-          <p class="muted">Choose short or long form and we will save it as a draft. You can publish after reviewing.</p>
+          <p class="muted">Choose short or long form. Save as draft to edit later, or publish immediately.</p>
         </div>
         <div class="pill" id="session-pill">Checking session…</div>
       </div>
@@ -47,6 +47,11 @@
           <label><input type="radio" name="format" value="short" required> Short (vertical / quick)</label>
           <label><input type="radio" name="format" value="long" checked> Long form</label>
         </fieldset>
+
+        <label class="field checkbox-row">
+          <input type="checkbox" name="publish" id="publish-now">
+          <span>Publish immediately (skip draft)</span>
+        </label>
 
         <label class="field">
           <span>Video or image file</span>

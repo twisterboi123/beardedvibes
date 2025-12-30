@@ -161,6 +161,7 @@ app.post('/api/upload', requireAuth, (req, res) => {
 			return res.status(401).json({ error: 'Login expired. Please sign in again.' });
 		}
 		const format = req.body?.format === 'short' ? 'short' : 'long';
+		const publishNow = req.body?.publish === 'true' || req.body?.publish === 'on';
 		const title = String(req.body?.title || '').trim().slice(0, 200);
 		const description = String(req.body?.description || '').trim().slice(0, 2000);
 
@@ -188,7 +189,7 @@ app.post('/api/upload', requireAuth, (req, res) => {
 				description,
 				uploaderDiscordId,
 				uploaderName,
-				status: 'draft',
+				status: publishNow ? 'published' : 'draft',
 				editToken,
 				createdAt,
 				format
@@ -202,7 +203,8 @@ app.post('/api/upload', requireAuth, (req, res) => {
 				editToken,
 				fileUrl: storage.getUrl(fileUrl),
 				type,
-				format
+				format,
+				status: data.status
 			});
 		} catch (uploadErr) {
 			console.error('Storage/DB upload error:', uploadErr);
@@ -316,7 +318,9 @@ app.get('/api/post/:id', async (req, res) => {
 
 	const tokenMatches = token && token === row.editToken;
 	const isPublished = row.status === 'published';
-	if (!isPublished && !tokenMatches) {
+	const isOwner = req.user?.discordId && row.uploaderDiscordId && req.user.discordId === row.uploaderDiscordId;
+	const canSeeDraft = tokenMatches || isOwner;
+	if (!isPublished && !canSeeDraft) {
 		return res.status(404).json({ error: 'Not found' });
 	}
 
@@ -413,12 +417,12 @@ app.post('/api/post/:id/edit', async (req, res) => {
 	if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
 
 	const { token, title = '', description = '' } = req.body;
-	if (!token) return res.status(400).json({ error: 'Missing edit token' });
-
 	const row = await db.getPost(id);
-	if (!row || row.editToken !== token) {
-		return res.status(403).json({ error: 'Invalid token' });
-	}
+	if (!row) return res.status(404).json({ error: 'Not found' });
+
+	const isOwner = req.user?.discordId && row.uploaderDiscordId && req.user.discordId === row.uploaderDiscordId;
+	const tokenMatches = token && token === row.editToken;
+	if (!tokenMatches && !isOwner) return res.status(403).json({ error: 'Invalid token' });
 
 	const trimmedTitle = String(title).trim().slice(0, 200);
 	const trimmedDescription = String(description).trim().slice(0, 2000);

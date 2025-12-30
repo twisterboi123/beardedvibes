@@ -27,7 +27,8 @@ function renderPreview(data) {
 }
 
 async function fetchPost(id, token) {
-  const response = await fetch(`/api/post/${id}?token=${encodeURIComponent(token)}`);
+  const url = token ? `/api/post/${id}?token=${encodeURIComponent(token)}` : `/api/post/${id}`;
+  const response = await fetch(url);
   if (!response.ok) {
     const message = (await response.json().catch(() => ({}))).error || 'Unable to load draft';
     throw new Error(message);
@@ -55,15 +56,9 @@ async function init() {
 
   console.log('Edit page init:', { pathname: window.location.pathname, pathParts, id, token: token ? 'present' : 'missing' });
 
-  if (!token) {
-    setStatus('Missing edit token in URL.', 'error');
-    publishBtn.disabled = true;
-    return;
-  }
-
   try {
     setStatus('Loading draft…');
-    console.log(`Fetching post ${id} with token...`);
+    console.log(`Fetching post ${id} with token flag...`);
     const data = await fetchPost(id, token);
     console.log('Post data received:', data);
     renderPreview(data);

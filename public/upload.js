@@ -8,6 +8,7 @@ const homeBtn = document.getElementById('home-btn');
 const fileInput = document.getElementById('file');
 const fileLabel = document.getElementById('file-label');
 const dropzone = document.getElementById('dropzone');
+const publishCheckbox = document.getElementById('publish-now');
 
 homeBtn.addEventListener('click', () => window.location.href = '/');
 logoutBtn.addEventListener('click', async () => {
@@ -44,9 +45,13 @@ function setStatus(text, type = 'info') {
   statusEl.className = `status ${type === 'error' ? 'error' : type === 'success' ? 'success' : ''}`;
 }
 
-function setResult(link, token) {
+function setResult({ status, editLink, token, viewLink }) {
   resultEl.style.display = 'block';
-  resultEl.innerHTML = `Draft saved. <a href="${link}" target="_blank">Open edit page</a> (token auto-included).`;
+  if (status === 'published') {
+    resultEl.innerHTML = `Published! <a href="${viewLink}" target="_blank">View post</a>.`;
+  } else {
+    resultEl.innerHTML = `Draft saved. <a href="${editLink}" target="_blank">Open edit page</a> (token auto-included).`;
+  }
 }
 
 async function ensureSession() {
@@ -77,6 +82,7 @@ form.addEventListener('submit', async (e) => {
   formData.append('format', format);
   formData.append('title', form.title.value);
   formData.append('description', form.description.value);
+  formData.append('publish', publishCheckbox.checked ? 'true' : 'false');
 
   uploadBtn.disabled = true;
   setStatus('Uploading…');
@@ -93,8 +99,13 @@ form.addEventListener('submit', async (e) => {
     }
     const data = await res.json();
     const editLink = `/edit/${data.id}?token=${data.editToken}`;
-    setStatus('Upload saved as draft. Edit and publish next.', 'success');
-    setResult(editLink, data.editToken);
+    const viewLink = `/post/${data.id}`;
+    if (data.status === 'published') {
+      setStatus('Uploaded and published!', 'success');
+    } else {
+      setStatus('Upload saved as draft. Edit and publish next.', 'success');
+    }
+    setResult({ status: data.status, editLink, token: data.editToken, viewLink });
     form.reset();
     fileLabel.textContent = 'Drag & drop or click to choose (mp4, webm, jpg, png, webp)';
   } catch (err) {
