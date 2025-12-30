@@ -1,0 +1,875 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>BeardedVibes</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    /* Mobile-optimized overrides */
+    * {
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    body.youtube-layout {
+      padding-bottom: 70px;
+    }
+
+    /* Hide desktop sidebar completely */
+    .sidebar {
+      display: none !important;
+    }
+
+    .sidebar-overlay {
+      display: none !important;
+    }
+
+    /* Mobile topbar */
+    .topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 56px;
+      padding: 0 12px;
+      z-index: 1000;
+      background: var(--yt-bg);
+      border-bottom: 1px solid var(--yt-border);
+    }
+
+    .topbar-left {
+      gap: 8px;
+    }
+
+    .menu-toggle {
+      display: none !important;
+    }
+
+    .logo-text {
+      font-size: 16px;
+    }
+
+    .logo-icon {
+      font-size: 20px;
+    }
+
+    /* Mobile search */
+    .topbar-center {
+      flex: 1;
+      margin: 0 8px;
+    }
+
+    .search-box {
+      max-width: 100%;
+      height: 36px;
+      border-radius: 20px;
+    }
+
+    .search-box input {
+      font-size: 14px;
+      padding: 0 12px;
+    }
+
+    .search-btn {
+      width: 36px;
+      font-size: 14px;
+    }
+
+    /* Hide create button text, show only icon */
+    .topbar-right {
+      gap: 4px;
+    }
+
+    .topbar-right .yt-btn {
+      padding: 8px;
+      font-size: 18px;
+      min-width: auto;
+    }
+
+    .topbar-right .yt-btn::after {
+      content: '+';
+    }
+
+    #upload-btn {
+      font-size: 0;
+      padding: 8px 12px;
+    }
+
+    #upload-btn::after {
+      content: '+';
+      font-size: 20px;
+    }
+
+    .auth-btn {
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+
+    .auth-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Content area */
+    .content {
+      margin-left: 0 !important;
+      padding: 60px 0 80px 0;
+      width: 100%;
+    }
+
+    /* Mobile video grid - single column */
+    .video-grid {
+      display: flex !important;
+      flex-direction: column;
+      gap: 16px;
+      padding: 12px;
+    }
+
+    .video-card {
+      width: 100%;
+      background: var(--yt-card);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .video-thumbnail {
+      width: 100%;
+      aspect-ratio: 16/9;
+      border-radius: 12px 12px 0 0;
+    }
+
+    .video-thumbnail video,
+    .video-thumbnail img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .duration-badge {
+      bottom: 8px;
+      right: 8px;
+      font-size: 11px;
+      padding: 2px 6px;
+    }
+
+    .video-info {
+      padding: 12px;
+      gap: 12px;
+    }
+
+    .channel-avatar {
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      font-size: 14px;
+    }
+
+    .video-title {
+      font-size: 14px;
+      line-height: 1.3;
+      -webkit-line-clamp: 2;
+    }
+
+    .channel-name {
+      font-size: 12px;
+    }
+
+    .video-meta {
+      font-size: 11px;
+    }
+
+    /* Bottom navigation bar */
+    .mobile-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: var(--yt-bg);
+      border-top: 1px solid var(--yt-border);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 1000;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .mobile-nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 16px;
+      color: var(--yt-text-secondary);
+      text-decoration: none;
+      font-size: 10px;
+      gap: 4px;
+      transition: color 0.2s;
+      min-width: 60px;
+    }
+
+    .mobile-nav-item.active {
+      color: var(--yt-accent);
+    }
+
+    .mobile-nav-item .nav-icon {
+      font-size: 22px;
+    }
+
+    .mobile-nav-item .nav-label {
+      font-size: 10px;
+      font-weight: 500;
+    }
+
+    /* User menu mobile */
+    .user-menu {
+      gap: 8px;
+    }
+
+    .user-avatar {
+      width: 28px;
+      height: 28px;
+      font-size: 12px;
+    }
+
+    #logout-btn {
+      display: none;
+    }
+
+    /* Auth menu mobile */
+    .auth-menu {
+      position: fixed;
+      top: auto;
+      bottom: 70px;
+      left: 12px;
+      right: 12px;
+      width: auto;
+      border-radius: 12px;
+    }
+
+    /* Notification dropdown mobile */
+    .notification-dropdown {
+      position: fixed;
+      top: 56px;
+      left: 8px;
+      right: 8px;
+      width: auto;
+      max-height: calc(100vh - 140px);
+      border-radius: 12px;
+    }
+
+    .notification-bell .badge {
+      font-size: 10px;
+      min-width: 16px;
+      height: 16px;
+    }
+
+    /* Empty state mobile */
+    .empty-state {
+      padding: 40px 20px;
+      font-size: 14px;
+    }
+
+    /* Loading state mobile */
+    .loading-state {
+      padding: 60px 20px;
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+    }
+
+    /* Ban page mobile */
+    .ban-page {
+      padding: 20px;
+    }
+
+    .ban-content h1 {
+      font-size: 24px;
+    }
+
+    .ban-content p {
+      font-size: 14px;
+    }
+
+    /* Site credits mobile */
+    .site-credits {
+      display: none;
+    }
+
+    /* Pull to refresh indicator */
+    .pull-refresh {
+      position: fixed;
+      top: 56px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100%);
+      background: var(--yt-accent);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      transition: transform 0.3s;
+      z-index: 999;
+    }
+
+    .pull-refresh.active {
+      transform: translateX(-50%) translateY(10px);
+    }
+
+    /* Swipe indicator for shorts */
+    .swipe-hint {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+
+    .swipe-hint.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body class="youtube-layout">
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="logo">
+        <span class="logo-icon">🔥</span>
+        <span class="logo-text">BeardedVibes</span>
+      </div>
+    </div>
+    <div class="topbar-center">
+      <div class="search-box">
+        <input type="text" placeholder="Search" id="search-input">
+        <button class="search-btn">🔍</button>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button id="upload-btn" class="yt-btn"></button>
+      <div id="notification-bell" class="notification-bell" style="display:none;">
+        <button class="bell-btn" id="bell-btn">🔔<span class="badge" id="notif-badge" style="display:none;">0</span></button>
+        <div class="notification-dropdown" id="notification-dropdown" style="display:none;">
+          <div class="notif-header">
+            <h4>Notifications</h4>
+            <button id="mark-all-read" class="ghost-btn">Mark all read</button>
+          </div>
+          <div class="notif-list" id="notif-list"></div>
+        </div>
+      </div>
+      <button id="login-btn" class="auth-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+        </svg>
+        Sign in
+      </button>
+      <div id="auth-menu" class="auth-menu" style="display:none;">
+        <button class="auth-option" data-provider="discord">Sign in with Discord</button>
+      </div>
+      <div id="user-menu" class="user-menu" style="display:none;">
+        <span id="user-avatar" class="user-avatar">👤</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Pull to refresh indicator -->
+  <div class="pull-refresh" id="pull-refresh">↻ Release to refresh</div>
+
+  <main class="content">
+    <div id="ban-message" class="ban-page" style="display:none;">
+      <div class="ban-content">
+        <h1>🚫 Banned</h1>
+        <p>Your account has been banned.</p>
+        <button onclick="window.location.href='/api/auth/logout'" class="ghost-btn">Sign Out</button>
+      </div>
+    </div>
+    <div id="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading...</p>
+    </div>
+    <div id="grid" class="video-grid" style="display:none;"></div>
+    <div id="empty" class="empty-state" style="display:none;">No videos yet</div>
+  </main>
+
+  <!-- Mobile bottom navigation -->
+  <nav class="mobile-nav">
+    <a href="#" class="mobile-nav-item active" data-feed="home">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">Home</span>
+    </a>
+    <a href="#" class="mobile-nav-item" data-feed="trending">
+      <span class="nav-icon">⚡</span>
+      <span class="nav-label">Trending</span>
+    </a>
+    <a href="/shorts" class="mobile-nav-item">
+      <span class="nav-icon">🎬</span>
+      <span class="nav-label">Shorts</span>
+    </a>
+    <a href="#" class="mobile-nav-item" data-feed="liked">
+      <span class="nav-icon">👍</span>
+      <span class="nav-label">Liked</span>
+    </a>
+    <a href="#" class="mobile-nav-item" id="profile-nav">
+      <span class="nav-icon">👤</span>
+      <span class="nav-label">Profile</span>
+    </a>
+  </nav>
+
+  <script>
+    const loginBtn = document.getElementById('login-btn');
+    const loading = document.getElementById('loading');
+    const authMenu = document.getElementById('auth-menu');
+    const uploadBtn = document.getElementById('upload-btn');
+    const userMenu = document.getElementById('user-menu');
+    const userAvatar = document.getElementById('user-avatar');
+    const grid = document.getElementById('grid');
+    const empty = document.getElementById('empty');
+    const searchInput = document.getElementById('search-input');
+    const searchBtn = document.querySelector('.search-btn');
+    const pullRefresh = document.getElementById('pull-refresh');
+    let currentUser = null;
+    let currentFeed = 'home';
+    let currentFormat = 'all';
+    let isBanned = false;
+    let searchTimeout = null;
+
+    // Pull to refresh
+    let touchStartY = 0;
+    let isPulling = false;
+
+    document.addEventListener('touchstart', (e) => {
+      if (window.scrollY === 0) {
+        touchStartY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+      if (window.scrollY === 0 && e.touches[0].clientY > touchStartY + 60) {
+        isPulling = true;
+        pullRefresh.classList.add('active');
+      }
+    }, { passive: true });
+
+    document.addEventListener('touchend', () => {
+      if (isPulling) {
+        isPulling = false;
+        pullRefresh.classList.remove('active');
+        loadFeed(currentFeed);
+      }
+    });
+
+    // Search functionality
+    async function performSearch(query) {
+      if (!query || query.trim().length < 2) {
+        loadFeed('home');
+        return;
+      }
+      try {
+        loading.style.display = 'flex';
+        grid.style.display = 'none';
+        empty.style.display = 'none';
+        setActiveNav(null);
+
+        const res = await fetch(`/api/posts/search?q=${encodeURIComponent(query.trim())}`);
+        const data = await res.json();
+        
+        loading.style.display = 'none';
+        grid.style.display = 'flex';
+        
+        if (!data.posts || data.posts.length === 0) {
+          empty.textContent = `No results for "${query}"`;
+          empty.style.display = 'flex';
+          grid.innerHTML = '';
+        } else {
+          empty.style.display = 'none';
+          render(data.posts);
+        }
+      } catch (err) {
+        loading.style.display = 'none';
+        empty.textContent = 'Search failed';
+        empty.style.display = 'flex';
+      }
+    }
+
+    searchBtn.addEventListener('click', () => performSearch(searchInput.value));
+
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        performSearch(searchInput.value);
+        searchInput.blur(); // Hide keyboard
+      }
+    });
+
+    searchInput.addEventListener('input', () => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        if (searchInput.value.trim().length >= 2) {
+          performSearch(searchInput.value);
+        } else if (searchInput.value.trim().length === 0) {
+          loadFeed('home');
+        }
+      }, 600);
+    });
+
+    uploadBtn.addEventListener('click', () => {
+      window.location.href = '/upload';
+    });
+
+    function toggleAuthMenu(show) {
+      const shouldShow = typeof show === 'boolean' ? show : authMenu.style.display === 'none';
+      authMenu.style.display = shouldShow ? 'flex' : 'none';
+    }
+
+    loginBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      toggleAuthMenu();
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!authMenu.contains(e.target) && e.target !== loginBtn) {
+        toggleAuthMenu(false);
+      }
+    });
+
+    authMenu.querySelectorAll('.auth-option').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        toggleAuthMenu(false);
+        window.location.href = '/api/auth/login';
+      });
+    });
+
+    function setAvatar(el, url, fallback) {
+      if (!el) return;
+      el.innerHTML = '';
+      if (url) {
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = fallback || 'Avatar';
+        el.appendChild(img);
+        return;
+      }
+      el.textContent = (fallback || '?').slice(0, 2).toUpperCase();
+    }
+
+    function updateAuthUi() {
+      if (currentUser) {
+        loginBtn.style.display = 'none';
+        toggleAuthMenu(false);
+        userMenu.style.display = 'flex';
+        document.getElementById('notification-bell').style.display = 'block';
+        setAvatar(userAvatar, currentUser.avatar, currentUser.username || 'User');
+        userAvatar.style.cursor = 'pointer';
+        userAvatar.onclick = () => window.location.href = '/profile.html?id=me';
+        loadNotifications();
+      } else {
+        loginBtn.style.display = 'block';
+        userMenu.style.display = 'none';
+        document.getElementById('notification-bell').style.display = 'none';
+      }
+    }
+
+    // Notifications
+    const bellBtn = document.getElementById('bell-btn');
+    const notifDropdown = document.getElementById('notification-dropdown');
+    const notifBadge = document.getElementById('notif-badge');
+    const notifList = document.getElementById('notif-list');
+    const markAllRead = document.getElementById('mark-all-read');
+
+    bellBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      notifDropdown.style.display = notifDropdown.style.display === 'none' ? 'block' : 'none';
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!notifDropdown.contains(e.target) && e.target !== bellBtn) {
+        notifDropdown.style.display = 'none';
+      }
+    });
+
+    markAllRead.addEventListener('click', async () => {
+      await fetch('/api/notifications/read-all', { method: 'POST' });
+      notifBadge.style.display = 'none';
+      document.querySelectorAll('.notif-item.unread').forEach(el => el.classList.remove('unread'));
+    });
+
+    async function loadNotifications() {
+      try {
+        const res = await fetch('/api/notifications');
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        if (data.unreadCount > 0) {
+          notifBadge.textContent = data.unreadCount > 99 ? '99+' : data.unreadCount;
+          notifBadge.style.display = 'flex';
+        } else {
+          notifBadge.style.display = 'none';
+        }
+        
+        notifList.innerHTML = '';
+        if (data.notifications.length === 0) {
+          notifList.innerHTML = '<div class="notif-empty">No notifications</div>';
+          return;
+        }
+        
+        data.notifications.slice(0, 10).forEach(n => {
+          const item = document.createElement('div');
+          item.className = `notif-item ${n.read ? '' : 'unread'}`;
+          item.innerHTML = `
+            <div class="title">${escapeHtml(n.title)}</div>
+            <div class="message">${escapeHtml(n.message)}</div>
+            <div class="time">${new Date(n.createdAt).toLocaleDateString()}</div>
+          `;
+          item.onclick = async () => {
+            if (!n.read) {
+              await fetch(`/api/notifications/${n.id}/read`, { method: 'POST' });
+              item.classList.remove('unread');
+              const count = parseInt(notifBadge.textContent) || 0;
+              if (count > 1) notifBadge.textContent = count - 1;
+              else notifBadge.style.display = 'none';
+            }
+          };
+          notifList.appendChild(item);
+        });
+      } catch (err) {}
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function formatDuration(seconds) {
+      if (!seconds || seconds === 0) return '0:00';
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function render(posts) {
+      grid.innerHTML = '';
+      const filtered = posts.filter((p) => {
+        const fmt = p.format || 'long';
+        const isShort = fmt === 'short' && p.type === 'video';
+        const isLongVideo = fmt === 'long' && p.type === 'video';
+        
+        if (currentFormat === 'all') return isLongVideo;
+        if (currentFormat === 'short') return isShort;
+        if (currentFormat === 'long') return isLongVideo;
+        return false;
+      });
+
+      if (!filtered.length) {
+        empty.style.display = 'block';
+        return;
+      }
+      empty.style.display = 'none';
+
+      filtered.forEach((p) => {
+        const card = document.createElement('div');
+        card.className = 'video-card';
+        card.onclick = (e) => {
+          if (e.target.closest('.channel-name, .channel-avatar')) return;
+          window.location.href = `/post/${p.id}`;
+        };
+
+        const thumbWrap = document.createElement('div');
+        thumbWrap.className = 'video-thumbnail';
+        
+        const thumb = document.createElement(p.type === 'video' ? 'video' : 'img');
+        thumb.src = p.fileUrl;
+        thumb.loading = 'lazy';
+        
+        let duration = null;
+        if (p.type === 'video') {
+          thumb.muted = true;
+          thumb.preload = 'metadata';
+          thumb.playsInline = true;
+          
+          duration = document.createElement('span');
+          duration.className = 'duration-badge';
+          duration.textContent = '0:00';
+          
+          thumb.addEventListener('loadedmetadata', () => {
+            if (thumb.duration && !isNaN(thumb.duration) && isFinite(thumb.duration)) {
+              duration.textContent = formatDuration(thumb.duration);
+            }
+          });
+        }
+        
+        thumbWrap.appendChild(thumb);
+        if (duration) thumbWrap.appendChild(duration);
+
+        const info = document.createElement('div');
+        info.className = 'video-info';
+
+        const avatar = document.createElement('div');
+        avatar.className = 'channel-avatar';
+        setAvatar(avatar, p.uploaderAvatar, p.uploaderName || 'U');
+        if (p.uploaderDiscordId) {
+          avatar.onclick = (e) => {
+            e.stopPropagation();
+            window.location.href = `/profile.html?id=${p.uploaderDiscordId}`;
+          };
+        }
+
+        const details = document.createElement('div');
+        details.className = 'video-details';
+
+        const title = document.createElement('h3');
+        title.className = 'video-title';
+        title.textContent = p.title || 'Untitled';
+
+        const channelName = document.createElement('div');
+        channelName.className = 'channel-name';
+        const nameText = document.createElement('span');
+        nameText.textContent = p.uploaderName || 'Unknown';
+        channelName.appendChild(nameText);
+        if (p.uploaderVerified) {
+          const badge = document.createElement('span');
+          badge.className = 'verified-badge';
+          badge.innerHTML = '✓';
+          channelName.appendChild(badge);
+        }
+        if (p.uploaderDiscordId) {
+          channelName.onclick = (e) => {
+            e.stopPropagation();
+            window.location.href = `/profile.html?id=${p.uploaderDiscordId}`;
+          };
+        }
+
+        const meta = document.createElement('div');
+        meta.className = 'video-meta';
+        meta.innerHTML = `<span>${p.likes || 0} likes</span> • <span>${new Date(p.createdAt).toLocaleDateString()}</span>`;
+
+        details.append(title, channelName, meta);
+        info.append(avatar, details);
+        card.append(thumbWrap, info);
+        grid.appendChild(card);
+      });
+    }
+
+    function setActiveNav(feed) {
+      document.querySelectorAll('.mobile-nav-item').forEach((el) => {
+        el.classList.toggle('active', el.dataset.feed === feed);
+      });
+    }
+
+    async function fetchPostsForFeed(feed) {
+      const endpoint = (
+        feed === 'home' ? '/api/posts' :
+        feed === 'trending' ? '/api/posts/trending' :
+        feed === 'liked' ? '/api/posts/liked' :
+        feed === 'history' ? '/api/posts/history' :
+        feed === 'watchlater' ? '/api/posts/watchlater' :
+        '/api/posts'
+      );
+      const res = await fetch(endpoint);
+      if (!res.ok) {
+        if (res.status === 401) {
+          window.location.href = '/api/auth/login';
+          return { posts: [] };
+        }
+        throw new Error('Failed to load');
+      }
+      return res.json();
+    }
+
+    async function loadFeed(feed) {
+      try {
+        currentFeed = feed;
+        setActiveNav(feed);
+        loading.style.display = 'flex';
+        grid.style.display = 'none';
+        empty.style.display = 'none';
+
+        const data = await fetchPostsForFeed(feed);
+        window.__lastPosts = data.posts || [];
+
+        loading.style.display = 'none';
+        grid.style.display = 'flex';
+        render(window.__lastPosts);
+      } catch (err) {
+        loading.style.display = 'none';
+        empty.textContent = 'Could not load videos';
+        empty.style.display = 'flex';
+      }
+    }
+
+    async function loadUser() {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (!res.ok) {
+          if (res.status === 403) {
+            const data = await res.json().catch(() => ({}));
+            if (data.banned) {
+              isBanned = true;
+              return;
+            }
+          }
+          throw new Error('Not logged in');
+        }
+        const data = await res.json();
+        currentUser = data.user;
+      } catch (_err) {
+        currentUser = null;
+      }
+      updateAuthUi();
+    }
+
+    async function bootstrap() {
+      await loadUser();
+      
+      if (isBanned) {
+        document.getElementById('ban-message').style.display = 'flex';
+        document.querySelector('.topbar').style.opacity = '0.5';
+        document.querySelector('.mobile-nav').style.opacity = '0.5';
+        document.getElementById('loading').style.display = 'none';
+        return;
+      }
+      
+      await loadFeed('home');
+
+      // Wire mobile bottom navigation
+      document.querySelectorAll('.mobile-nav-item').forEach((item) => {
+        item.addEventListener('click', (e) => {
+          if (!item.dataset.feed) return;
+          
+          e.preventDefault();
+          const feed = item.dataset.feed;
+          if (['liked', 'history', 'watchlater'].includes(feed) && !currentUser) {
+            window.location.href = '/api/auth/login';
+            return;
+          }
+          searchInput.value = '';
+          loadFeed(feed);
+        });
+      });
+
+      // Profile nav
+      document.getElementById('profile-nav').addEventListener('click', (e) => {
+        e.preventDefault();
+        if (currentUser) {
+          window.location.href = '/profile.html?id=me';
+        } else {
+          window.location.href = '/api/auth/login';
+        }
+      });
+    }
+
+    bootstrap();
+  </script>
+</body>
+</html>
