@@ -226,7 +226,7 @@ function updateFollowUi(following, followerCount) {
   state.following = following;
   if (followBtn) {
     followBtn.classList.toggle('active', following);
-    followBtn.textContent = following ? 'Following' : 'Follow';
+    followBtn.textContent = following ? 'Subscribed' : 'Subscribe';
   }
   if (followerCountEl && typeof followerCount === 'number') {
     followerCountEl.textContent = `${followerCount} follower${followerCount === 1 ? '' : 's'}`;

@@ -423,6 +423,17 @@ app.post('/api/user/:discordId/follow', requireAuth, async (req, res) => {
 	return res.json({ following, followerCount });
 });
 
+// Subscribe aliases (reuse follow logic)
+app.get('/api/user/:discordId/subscribe', async (req, res) => {
+	return app._router.handle({ ...req, url: `/api/user/${req.params.discordId}/follow`, method: 'GET' }, res, () => {});
+});
+
+app.post('/api/user/:discordId/subscribe', (req, res, next) => {
+	// Delegate to follow handler while keeping auth guard
+	req.url = `/api/user/${req.params.discordId}/follow`;
+	return app._router.handle(req, res, next);
+});
+
 // Comments: list
 app.get('/api/post/:id/comments', async (req, res) => {
 	const id = Number(req.params.id);
