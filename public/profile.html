@@ -69,7 +69,7 @@
             <h1 id="profile-username" style="margin: 0 0 4px 0; font-size: 28px; color: var(--yt-text);">Loading...</h1>
             <div class="profile-handle-row" style="display: flex; align-items: center; gap: 8px; color: var(--yt-text-secondary); font-size: 14px; margin-bottom: 12px;">
               <span id="profile-handle">@user</span>
-              <span id="profile-verified-badge" style="color: #065fd4; font-size: 16px; display: none;">✓</span>
+              <span id="profile-verified-badge" style="display: none; background: #065fd4; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; margin-left: 4px;">✓ Verified</span>
             </div>
             <div class="profile-stats-row" style="display: flex; gap: 24px; margin-bottom: 16px; color: var(--yt-text-secondary); font-size: 14px;">
               <div><strong id="stat-videos" style="color: var(--yt-text); font-size: 16px;">0</strong> videos</div>
@@ -237,7 +237,9 @@
       // Set profile info
       document.getElementById('profile-username').textContent = safeName;
       document.getElementById('profile-handle').textContent = `@${safeHandle}`;
-      document.getElementById('profile-verified-badge').style.display = data.isVerified ? 'inline' : 'none';
+      const verifiedBadge = document.getElementById('profile-verified-badge');
+      verifiedBadge.style.display = data.isVerified ? 'inline-block' : 'none';
+      console.log('User verified status:', data.isVerified);
       document.getElementById('stat-videos').textContent = data.totalVideos || 0;
       document.getElementById('stat-followers').textContent = data.followerCount || 0;
       document.getElementById('stat-likes').textContent = data.totalLikes || 0;
