@@ -95,7 +95,8 @@ function signSession(user) {
 	const discordId = user.discordId ?? user.discordid ?? user.discord_id;
 	const username = user.username ?? user.name ?? 'Unknown';
 	const avatar = user.avatar ?? user.avatarUrl ?? user.picture ?? null;
-	return jwt.sign({ id: user.id, discordId, username, avatar }, jwtSecret, { expiresIn: '30d' });
+	const isAdmin = user.isAdmin ?? user.isadmin ?? false;
+	return jwt.sign({ id: user.id, discordId, username, avatar, isAdmin }, jwtSecret, { expiresIn: '30d' });
 }
 
 function normalizeUser(user) {
@@ -104,7 +105,8 @@ function normalizeUser(user) {
 	if (!discordId) return undefined;
 	const username = user.username ?? user.name ?? 'Unknown';
 	const avatar = user.avatar ?? user.avatarUrl ?? user.picture ?? null;
-	return { id: user.id, discordId, username, avatar };
+	const isAdmin = user.isAdmin ?? user.isadmin ?? false;
+	return { id: user.id, discordId, username, avatar, isAdmin };
 }
 
 async function authOptional(req, res, next) {
@@ -133,6 +135,13 @@ async function authOptional(req, res, next) {
 function requireAuth(req, res, next) {
 	if (!req.user) {
 		return res.status(401).json({ error: 'Login required' });
+	}
+	return next();
+}
+
+function requireAdmin(req, res, next) {
+	if (!req.user || !req.user.isAdmin) {
+		return res.status(403).json({ error: 'Admin access required' });
 	}
 	return next();
 }
@@ -580,6 +589,11 @@ app.get('/api/auth/callback', async (req, res) => {
 			avatar: discordUser.avatar ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png` : null
 		});
 
+		// Check if user is banned
+		if (user.isBanned || user.isbanned) {
+			return res.status(403).send('Your account has been banned and cannot access this platform.');
+		}
+
 		const session = signSession(user);
 		res.cookie('session', session, sessionCookieOptions);
 
@@ -615,6 +629,65 @@ app.get('/shorts', (_req, res) => {
 
 app.get('/upload', (_req, res) => {
 	res.sendFile(path.resolve(publicDir, 'upload.html'));
+});
+
+// Admin endpoints
+app.delete('/api/post/:id', requireAdmin, async (req, res) => {
+	const id = Number(req.params.id);
+	if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid post id' });
+
+	const post = await db.getPost(id);
+	if (!post) return res.status(404).json({ error: 'Post not found' });
+
+	await db.deletePost(id);
+	return res.json({ success: true, message: 'Post deleted' });
+});
+
+app.post('/api/admin/user/:discordId/ban', requireAdmin, async (req, res) => {
+	const discordId = req.params.discordId;
+	if (!discordId) return res.status(400).json({ error: 'Invalid user' });
+
+	const { banned } = req.body;
+	await db.setBanned(discordId, Boolean(banned));
+	return res.json({ success: true, message: `User ${banned ? 'banned' : 'unbanned'}` });
+});
+
+app.post('/api/admin/user/:discordId/verify', requireAdmin, async (req, res) => {
+	const discordId = req.params.discordId;
+	if (!discordId) return res.status(400).json({ error: 'Invalid user' });
+
+	const { verified } = req.body;
+	await db.setVerified(discordId, Boolean(verified));
+	return res.json({ success: true, message: `User ${verified ? 'verified' : 'unverified'}` });
+});
+
+app.post('/api/admin/user/:discordId/admin', requireAdmin, async (req, res) => {
+	const discordId = req.params.discordId;
+	if (!discordId) return res.status(400).json({ error: 'Invalid user' });
+
+	const { admin } = req.body;
+	await db.setAdmin(discordId, Boolean(admin));
+	return res.json({ success: true, message: `User ${admin ? 'promoted to' : 'removed from'} admin` });
+});
+
+// Setup endpoint (use SETUP_SECRET from .env to promote admins)
+app.post('/api/setup/promote-admin', async (req, res) => {
+	const setupSecret = process.env.SETUP_SECRET;
+	if (!setupSecret) {
+		return res.status(400).json({ error: 'Admin setup not available' });
+	}
+
+	const { secret, discordId } = req.body;
+	if (!secret || secret !== setupSecret) {
+		return res.status(403).json({ error: 'Invalid setup secret' });
+	}
+
+	if (!discordId) {
+		return res.status(400).json({ error: 'Discord ID required' });
+	}
+
+	await db.setAdmin(discordId, true);
+	return res.json({ success: true, message: `User ${discordId} promoted to admin` });
 });
 
 app.use((err, _req, res, _next) => {

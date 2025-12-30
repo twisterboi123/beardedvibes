@@ -25,10 +25,16 @@ export function createDatabase(config) {
             discordId TEXT NOT NULL UNIQUE,
             username TEXT NOT NULL,
             avatar TEXT,
+            isAdmin BOOLEAN NOT NULL DEFAULT FALSE,
+            isBanned BOOLEAN NOT NULL DEFAULT FALSE,
+            isVerified BOOLEAN NOT NULL DEFAULT FALSE,
             createdAt TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             lastSeenAt TIMESTAMPTZ NOT NULL DEFAULT NOW()
           );
         `);
+        await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS isAdmin BOOLEAN DEFAULT FALSE`);
+        await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS isBanned BOOLEAN DEFAULT FALSE`);
+        await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS isVerified BOOLEAN DEFAULT FALSE`);
         await pool.query(`
           CREATE TABLE IF NOT EXISTS posts (
             id SERIAL PRIMARY KEY,
@@ -330,6 +336,31 @@ export function createDatabase(config) {
       async followerCount(followingDiscordId) {
         const res = await pool.query('SELECT COUNT(*)::INT AS count FROM follows WHERE followingDiscordId = $1', [followingDiscordId]);
         return res.rows[0]?.count || 0;
+      },
+
+      async deletePost(postId) {
+        await pool.query('DELETE FROM posts WHERE id = $1', [postId]);
+        return true;
+      },
+
+      async setBanned(discordId, banned) {
+        await pool.query('UPDATE users SET isBanned = $1 WHERE discordId = $2', [banned, discordId]);
+        return true;
+      },
+
+      async setVerified(discordId, verified) {
+        await pool.query('UPDATE users SET isVerified = $1 WHERE discordId = $2', [verified, discordId]);
+        return true;
+      },
+
+      async setAdmin(discordId, admin) {
+        await pool.query('UPDATE users SET isAdmin = $1 WHERE discordId = $2', [admin, discordId]);
+        return true;
+      },
+
+      async getUserByDiscordId(discordId) {
+        const res = await pool.query('SELECT * FROM users WHERE discordId = $1 LIMIT 1', [discordId]);
+        return res.rows[0] || null;
       }
     };
   }
@@ -344,10 +375,23 @@ export function createDatabase(config) {
       discordId TEXT NOT NULL UNIQUE,
       username TEXT NOT NULL,
       avatar TEXT,
+      isAdmin INTEGER NOT NULL DEFAULT 0,
+      isBanned INTEGER NOT NULL DEFAULT 0,
+      isVerified INTEGER NOT NULL DEFAULT 0,
       createdAt TEXT NOT NULL DEFAULT (datetime('now')),
       lastSeenAt TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
+  const tableInfo = db.prepare('PRAGMA table_info(users)').all();
+  if (!tableInfo.some(col => col.name === 'isAdmin')) {
+    db.exec('ALTER TABLE users ADD COLUMN isAdmin INTEGER DEFAULT 0');
+  }
+  if (!tableInfo.some(col => col.name === 'isBanned')) {
+    db.exec('ALTER TABLE users ADD COLUMN isBanned INTEGER DEFAULT 0');
+  }
+  if (!tableInfo.some(col => col.name === 'isVerified')) {
+    db.exec('ALTER TABLE users ADD COLUMN isVerified INTEGER DEFAULT 0');
+  }
   db.exec(`
     CREATE TABLE IF NOT EXISTS posts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -623,6 +667,30 @@ export function createDatabase(config) {
     async followerCount(followingDiscordId) {
       const row = followerCountStmt.get(followingDiscordId);
       return row?.count || 0;
+    },
+
+    async deletePost(postId) {
+      db.prepare('DELETE FROM posts WHERE id = ?').run(postId);
+      return true;
+    },
+
+    async setBanned(discordId, banned) {
+      db.prepare('UPDATE users SET isBanned = ? WHERE discordId = ?').run(banned ? 1 : 0, discordId);
+      return true;
+    },
+
+    async setVerified(discordId, verified) {
+      db.prepare('UPDATE users SET isVerified = ? WHERE discordId = ?').run(verified ? 1 : 0, discordId);
+      return true;
+    },
+
+    async setAdmin(discordId, admin) {
+      db.prepare('UPDATE users SET isAdmin = ? WHERE discordId = ?').run(admin ? 1 : 0, discordId);
+      return true;
+    },
+
+    async getUserByDiscordId(discordId) {
+      return db.prepare('SELECT * FROM users WHERE discordId = ? LIMIT 1').get(discordId) || null;
     }
   };
 }
