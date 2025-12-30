@@ -112,7 +112,8 @@ function signSession(user) {
 	const avatarRaw = user.avatar ?? user.avatarUrl ?? user.picture ?? null;
 	const avatar = resolveAssetUrl(avatarRaw);
 	const isAdmin = user.isAdmin ?? user.isadmin ?? false;
-	return jwt.sign({ id: user.id, discordId, username, avatar, isAdmin }, jwtSecret, { expiresIn: '30d' });
+	const isBanned = user.isBanned ?? user.isbanned ?? false;
+	return jwt.sign({ id: user.id, discordId, username, avatar, isAdmin, isBanned }, jwtSecret, { expiresIn: '30d' });
 }
 
 function normalizeUser(user) {
@@ -123,7 +124,8 @@ function normalizeUser(user) {
 	const avatarRaw = user.avatar ?? user.avatarUrl ?? user.picture ?? null;
 	const avatar = resolveAssetUrl(avatarRaw);
 	const isAdmin = user.isAdmin ?? user.isadmin ?? false;
-	return { id: user.id, discordId, username, avatar, isAdmin };
+	const isBanned = user.isBanned ?? user.isbanned ?? false;
+	return { id: user.id, discordId, username, avatar, isAdmin, isBanned };
 }
 
 async function authOptional(req, res, next) {
@@ -140,6 +142,13 @@ async function authOptional(req, res, next) {
 				const refreshed = signSession(user);
 				res.cookie('session', refreshed, sessionCookieOptions);
 			}
+		}
+
+		// Check if user is banned; if so, clear session and deny access
+		if (user && user.isBanned) {
+			res.clearCookie('session', sessionCookieOptions);
+			req.user = undefined;
+			return res.status(403).json({ error: 'Your account has been banned', banned: true });
 		}
 
 		req.user = user;

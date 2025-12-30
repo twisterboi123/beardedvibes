@@ -76,12 +76,14 @@
   </aside>
 
   <main class="content">
-    <div class="category-tabs" id="format-tabs">
-      <button class="tab active" data-format="all">All</button>
-      <button class="tab" data-format="short">Shorts</button>
-      <button class="tab" data-format="long">Long form</button>
+    <div id="ban-message" class="ban-page" style="display:none;">
+      <div class="ban-content">
+        <h1>🚫 Account Banned</h1>
+        <p>Your account has been banned and you cannot access this platform.</p>
+        <p>If you believe this is a mistake, please contact support.</p>
+        <button onclick="window.location.href='/api/auth/logout'" class="ghost-btn">Sign Out</button>
+      </div>
     </div>
-
     <div id="loading" class="loading-state">
       <div class="spinner"></div>
       <p>Loading videos...</p>
@@ -105,6 +107,7 @@
     let currentUser = null;
     let currentFeed = 'home';
     let currentFormat = 'all';
+    let isBanned = false;
 
     menuToggle.addEventListener('click', () => {
       sidebar.classList.toggle('collapsed');
@@ -354,7 +357,16 @@
     async function loadUser() {
       try {
         const res = await fetch('/api/auth/me');
-        if (!res.ok) throw new Error('Not logged in');
+        if (!res.ok) {
+          if (res.status === 403) {
+            const data = await res.json().catch(() => ({}));
+            if (data.banned) {
+              isBanned = true;
+              return;
+            }
+          }
+          throw new Error('Not logged in');
+        }
         const data = await res.json();
         currentUser = data.user;
 
@@ -370,6 +382,19 @@
 
     async function bootstrap() {
       await loadUser();
+      
+      // Show ban message and hide everything else if banned
+      if (isBanned) {
+        document.getElementById('ban-message').style.display = 'flex';
+        document.querySelector('.topbar').style.opacity = '0.5';
+        document.querySelector('.sidebar').style.opacity = '0.5';
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('grid').style.display = 'none';
+        document.getElementById('upload-btn').disabled = true;
+        document.querySelector('.nav-item').style.pointerEvents = 'none';
+        return;
+      }
+      
       await load();
       wireFormatTabs();
 

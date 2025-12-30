@@ -54,8 +54,52 @@
     </nav>
   </aside>
 
-  <main class="content" style="padding: 20px;">
-    <div id="profile-container" style="max-width: 1200px; margin: 0 auto;">
+  <main class="content" style="padding: 0;">
+    <div id="profile-container">
+      <!-- Banner -->
+      <div id="profile-banner" class="profile-banner" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); height: 200px; width: 100%; display: block;"></div>
+
+      <!-- Profile Header -->
+      <div class="profile-header-section">
+        <div class="profile-header-content">
+          <div class="profile-avatar-large">
+            <div id="profile-avatar-container" style="width: 140px; height: 140px; border-radius: 50%; border: 4px solid var(--yt-bg-primary); overflow: hidden; background: var(--yt-bg-secondary); display: flex; align-items: center; justify-content: center;"></div>
+          </div>
+          <div class="profile-info-main">
+            <h1 id="profile-username" style="margin: 0 0 4px 0; font-size: 28px; color: var(--yt-text);">Loading...</h1>
+            <div class="profile-handle-row" style="display: flex; align-items: center; gap: 8px; color: var(--yt-text-secondary); font-size: 14px; margin-bottom: 12px;">
+              <span id="profile-handle">@user</span>
+              <span id="profile-verified-badge" style="color: #065fd4; font-size: 16px; display: none;">✓</span>
+            </div>
+            <div class="profile-stats-row" style="display: flex; gap: 24px; margin-bottom: 16px; color: var(--yt-text-secondary); font-size: 14px;">
+              <div><strong id="stat-videos" style="color: var(--yt-text); font-size: 16px;">0</strong> videos</div>
+              <div><strong id="stat-followers" style="color: var(--yt-text); font-size: 16px;">0</strong> followers</div>
+              <div><strong id="stat-likes" style="color: var(--yt-text); font-size: 16px;">0</strong> total likes</div>
+            </div>
+            <p id="profile-description" style="color: var(--yt-text-secondary); font-size: 14px; margin: 0; max-width: 600px; line-height: 1.4;"></p>
+          </div>
+          <div id="profile-actions" style="display: flex; gap: 12px;"></div>
+        </div>
+      </div>
+
+      <!-- Tabs Navigation -->
+      <div class="profile-tabs" style="border-bottom: 1px solid var(--yt-border); background: var(--yt-bg-secondary); padding: 0 20px; display: flex; gap: 30px; overflow-x: auto;">
+        <button class="profile-tab active" data-tab="videos" style="padding: 12px 0; border: none; background: none; color: var(--yt-text); cursor: pointer; border-bottom: 3px solid transparent; transition: border-color 0.2s; font-weight: 500;">Videos</button>
+        <button class="profile-tab" data-tab="shorts" style="padding: 12px 0; border: none; background: none; color: var(--yt-text); cursor: pointer; border-bottom: 3px solid transparent; transition: border-color 0.2s; font-weight: 500;">Shorts</button>
+      </div>
+
+      <!-- Videos Tab -->
+      <div id="videos-tab" class="profile-tab-content" style="padding: 20px;">
+        <h2 style="color: var(--yt-text); margin-bottom: 16px;">Videos</h2>
+        <div class="video-grid" id="videos-grid"></div>
+      </div>
+
+      <!-- Shorts Tab -->
+      <div id="shorts-tab" class="profile-tab-content" style="padding: 20px; display: none;">
+        <h2 style="color: var(--yt-text); margin-bottom: 16px;">Shorts</h2>
+        <div class="video-grid" id="shorts-grid"></div>
+      </div>
+
       <div class="loading-state">Loading profile...</div>
     </div>
   </main>
@@ -97,7 +141,17 @@
     async function loadUser() {
       try {
         const res = await fetch('/api/auth/me');
-        if (!res.ok) throw new Error('Not logged in');
+        if (!res.ok) {
+          if (res.status === 403) {
+            const data = await res.json().catch(() => ({}));
+            if (data.banned) {
+              alert('Your account has been banned and cannot access this platform.');
+              window.location.href = '/api/auth/logout';
+              return;
+            }
+          }
+          throw new Error('Not logged in');
+        }
         const data = await res.json();
         currentUser = data.user;
 
@@ -156,96 +210,179 @@
     function renderProfile(data, isOwn) {
       const container = document.getElementById('profile-container');
       const safeName = escapeHtml(data.username || 'User');
-      const safeInitial = safeName.charAt(0).toUpperCase();
       const safeHandle = escapeHtml(data.discordId || '');
       
-      const header = `
-        <div class="profile-header">
-          <div class="profile-avatar">
-            ${data.avatar ? `<img src="${data.avatar}" alt="${safeName}">` : `<div class="avatar-placeholder">${safeInitial}</div>`}
-          </div>
-          <div class="profile-meta">
-            <div class="profile-name-row">
-              <h1>${safeName}</h1>
-              ${data.isVerified ? '<span class="verified-badge">✓</span>' : ''}
-            </div>
-            <p class="profile-handle">@${safeHandle}</p>
-            <div class="profile-stats">
-              <div><strong>${data.totalVideos || 0}</strong><span>videos</span></div>
-              <div><strong>${data.totalLikes || 0}</strong><span>likes</span></div>
-              <div><strong>${data.followerCount || 0}</strong><span>followers</span></div>
-            </div>
-          </div>
-        </div>
-      `;
-
-      const editPanel = isOwn ? `
-        <section class="profile-edit-card">
-          <div class="edit-card-header">
-            <div>
-              <p class="eyebrow">Your profile</p>
-              <h2>Update name & avatar</h2>
-            </div>
-            <span class="pill pill-subtle">Visible across the site</span>
-          </div>
-          <form id="profile-edit-form" class="profile-edit-form">
-            <div class="form-row">
-              <label for="display-name">Display name</label>
-              <input id="display-name" name="username" type="text" maxlength="80" placeholder="How should people see you?" value="${escapeAttribute(data.username)}">
-            </div>
-            <div class="form-row">
-              <label>Profile picture</label>
-              <div class="avatar-picker">
-                <div id="avatar-preview" class="avatar-preview">${data.avatar ? `<img src="${data.avatar}" alt="Avatar preview">` : `<div class="avatar-fallback">${safeInitial}</div>`}</div>
-                <div class="avatar-actions">
-                  <input id="avatar-input" name="avatar" type="file" accept="image/*" style="display:none;">
-                  <button type="button" id="pick-avatar" class="ghost-btn">Choose image</button>
-                  <p class="hint">PNG, JPG, or WebP up to 5 MB.</p>
-                </div>
-              </div>
-            </div>
-            <div class="form-actions">
-              <button type="submit" class="primary-btn">Save changes</button>
-              <span id="profile-edit-status" class="status-text"></span>
-            </div>
-          </form>
-        </section>
-      ` : '';
-
-      const videosSection = `
-        <section>
-          <div class="section-header">
-            <h2>Videos</h2>
-            <span class="pill">${data.totalVideos || 0} total</span>
-          </div>
-          <div class="video-grid" id="videos-grid">
-            ${data.videos && data.videos.length > 0 ? data.videos.map(v => `
-              <div class="video-card" onclick="window.location.href='/post.html?id=${v.id}'">
-                <div class="thumbnail-wrapper">
-                  ${v.type === 'video' ? `<video src="${v.fileUrl || v.filename}" class="thumbnail"></video>` : `<img src="${v.fileUrl || v.filename}" class="thumbnail" alt="${escapeHtml(v.title || 'Untitled')}">`}
-                  <div class="duration-badge">${v.format === 'short' ? 'Short' : 'Video'}</div>
-                </div>
-                <div class="video-info">
-                  <h3 class="video-title">${escapeHtml(v.title || 'Untitled')}</h3>
-                  <div class="video-meta">
-                    <span>${v.likes || 0} likes</span> • <span>${new Date(v.createdAt).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              </div>
-            `).join('') : '<p style="color: var(--yt-text-secondary);">No videos yet</p>'}
-          </div>
-        </section>
-      `;
-
-      container.innerHTML = header + editPanel + videosSection;
-
-      if (isOwn) {
-        wireProfileForm(data);
+      // Set avatar
+      const avatarContainer = document.getElementById('profile-avatar-container');
+      if (data.avatar) {
+        const img = document.createElement('img');
+        img.src = data.avatar;
+        img.alt = safeName;
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'cover';
+        avatarContainer.innerHTML = '';
+        avatarContainer.appendChild(img);
+      } else {
+        avatarContainer.innerHTML = `<div style="font-size: 56px; font-weight: 700; color: white;">${safeName.charAt(0).toUpperCase()}</div>`;
       }
+      
+      // Set profile info
+      document.getElementById('profile-username').textContent = safeName;
+      document.getElementById('profile-handle').textContent = `@${safeHandle}`;
+      document.getElementById('profile-verified-badge').style.display = data.isVerified ? 'inline' : 'none';
+      document.getElementById('stat-videos').textContent = data.totalVideos || 0;
+      document.getElementById('stat-followers').textContent = data.followerCount || 0;
+      document.getElementById('stat-likes').textContent = data.totalLikes || 0;
+      
+      // Description (optional)
+      const descEl = document.getElementById('profile-description');
+      descEl.textContent = data.bio || data.description || 'No bio yet';
+      
+      // Profile actions
+      const actionsContainer = document.getElementById('profile-actions');
+      if (isOwn && currentUser && currentUser.discordId === data.discordId) {
+        const editBtn = document.createElement('button');
+        editBtn.className = 'primary-btn';
+        editBtn.style.padding = '10px 14px';
+        editBtn.textContent = 'Edit profile';
+        editBtn.onclick = () => {
+          document.querySelector('.profile-edit-card')?.scrollIntoView({ behavior: 'smooth' });
+        };
+        actionsContainer.appendChild(editBtn);
+      }
+      
+      // Render videos and shorts
+      const allVideos = data.videos || [];
+      const videos = allVideos.filter(v => v.format !== 'short');
+      const shorts = allVideos.filter(v => v.format === 'short');
+      
+      renderVideosTab(videos);
+      if (shorts.length > 0) {
+        document.querySelector('[data-tab="shorts"]').style.display = 'inline-block';
+        renderShortsTab(shorts);
+      }
+      
+      // Wire up tabs
+      wireProfileTabs();
+      
+      // Show edit form if owner
+      if (isOwn) {
+        renderEditForm(data);
+      }
+    }
+    
+    function renderVideosTab(videos) {
+      const grid = document.getElementById('videos-grid');
+      grid.innerHTML = '';
+      if (videos.length === 0) {
+        grid.innerHTML = '<p style="color: var(--yt-text-secondary);">No videos yet</p>';
+        return;
+      }
+      videos.forEach(v => {
+        const card = document.createElement('div');
+        card.className = 'video-card';
+        card.onclick = () => window.location.href = `/post/${v.id}`;
+        card.innerHTML = `
+          <div class="thumbnail-wrapper">
+            ${v.type === 'video' ? `<video src="${v.fileUrl || v.filename}" class="thumbnail"></video>` : `<img src="${v.fileUrl || v.filename}" class="thumbnail" alt="${escapeHtml(v.title || 'Untitled')}">`}
+            <div class="duration-badge">${v.format === 'short' ? 'Short' : 'Video'}</div>
+          </div>
+          <div class="video-info">
+            <h3 class="video-title">${escapeHtml(v.title || 'Untitled')}</h3>
+            <div class="video-meta">
+              <span>${v.likes || 0} likes</span> • <span>${new Date(v.createdAt).toLocaleDateString()}</span>
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+    
+    function renderShortsTab(shorts) {
+      const grid = document.getElementById('shorts-grid');
+      grid.innerHTML = '';
+      if (shorts.length === 0) {
+        grid.innerHTML = '<p style="color: var(--yt-text-secondary);">No shorts yet</p>';
+        return;
+      }
+      shorts.forEach(s => {
+        const card = document.createElement('div');
+        card.className = 'video-card';
+        card.onclick = () => window.location.href = `/post/${s.id}`;
+        card.innerHTML = `
+          <div class="thumbnail-wrapper">
+            ${s.type === 'video' ? `<video src="${s.fileUrl || s.filename}" class="thumbnail"></video>` : `<img src="${s.fileUrl || s.filename}" class="thumbnail" alt="${escapeHtml(s.title || 'Untitled')}">`}
+          </div>
+          <div class="video-info">
+            <h3 class="video-title">${escapeHtml(s.title || 'Untitled')}</h3>
+            <div class="video-meta">
+              <span>${s.likes || 0} likes</span> • <span>${new Date(s.createdAt).toLocaleDateString()}</span>
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+    
+    function wireProfileTabs() {
+      const tabs = document.querySelectorAll('.profile-tab');
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          const tabName = tab.dataset.tab;
+          tabs.forEach(t => {
+            t.classList.toggle('active', t === tab);
+            t.style.borderBottomColor = t === tab ? '#065fd4' : 'transparent';
+          });
+          document.querySelectorAll('.profile-tab-content').forEach(content => {
+            content.style.display = content.id === `${tabName}-tab` ? 'block' : 'none';
+          });
+        });
+      });
+    }
+    
+    function renderEditForm(data) {
+      const container = document.getElementById('profile-container');
+      const editSection = document.createElement('section');
+      editSection.className = 'profile-edit-card';
+      editSection.innerHTML = `
+        <div class="edit-card-header">
+          <div>
+            <p class="eyebrow">Your profile</p>
+            <h2>Update name & avatar</h2>
+          </div>
+          <span class="pill pill-subtle">Visible across the site</span>
+        </div>
+        <form id="profile-edit-form" class="profile-edit-form">
+          <div class="form-row">
+            <label for="display-name">Display name</label>
+            <input id="display-name" name="username" type="text" maxlength="80" placeholder="How should people see you?" value="${escapeAttribute(data.username)}">
+          </div>
+          <div class="form-row">
+            <label>Profile picture</label>
+            <div class="avatar-picker">
+              <div id="avatar-preview" class="avatar-preview">${data.avatar ? `<img src="${data.avatar}" alt="Avatar preview">` : `<div class="avatar-fallback">${escapeHtml(data.username || 'U').charAt(0).toUpperCase()}</div>`}</div>
+              <div class="avatar-actions">
+                <input id="avatar-input" name="avatar" type="file" accept="image/*" style="display:none;">
+                <button type="button" id="pick-avatar" class="ghost-btn">Choose image</button>
+                <p class="hint">PNG, JPG, or WebP up to 5 MB.</p>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="primary-btn">Save changes</button>
+            <span id="profile-edit-status" class="status-text"></span>
+          </div>
+        </form>
+      `;
+      container.appendChild(editSection);
+      wireProfileForm(data);
     }
 
     function wireProfileForm(data) {
       const form = document.getElementById('profile-edit-form');
+      if (!form) return;
+      
       const nameInput = document.getElementById('display-name');
       const fileInput = document.getElementById('avatar-input');
       const pickBtn = document.getElementById('pick-avatar');

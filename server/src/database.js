@@ -286,7 +286,7 @@ export function createDatabase(config) {
 
       async listComments(postId) {
         const res = await pool.query(
-          `SELECT c.id, c.text, c.createdAt, u.username AS author
+          `SELECT c.id, c.text, c.createdAt, u.username AS author, u.discordId AS "authorDiscordId"
            FROM comments c
            JOIN users u ON u.id = c.userId
            WHERE c.postId = $1
@@ -593,7 +593,7 @@ export function createDatabase(config) {
   const userLikesStmt = db.prepare('SELECT postId FROM likes WHERE userId = ?');
   const insertCommentStmt = db.prepare('INSERT INTO comments (postId, userId, text, createdAt) VALUES (?, ?, ?, ?)');
   const listCommentsStmt = db.prepare(`
-    SELECT c.id, c.text, c.createdAt, u.username AS author
+    SELECT c.id, c.text, c.createdAt, u.username AS author, u.discordId AS authorDiscordId
     FROM comments c
     JOIN users u ON u.id = c.userId
     WHERE c.postId = ?

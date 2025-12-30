@@ -138,9 +138,23 @@ function renderComments(list) {
   list.forEach((c) => {
     const card = document.createElement('div');
     card.className = 'comment';
+    
     const author = document.createElement('div');
     author.className = 'author';
-    author.textContent = c.author;
+    
+    if (c.authorDiscordId) {
+      const authorLink = document.createElement('a');
+      authorLink.href = `/profile.html?id=${c.authorDiscordId}`;
+      authorLink.textContent = c.author;
+      authorLink.style.cursor = 'pointer';
+      authorLink.style.color = 'inherit';
+      authorLink.style.textDecoration = 'none';
+      authorLink.title = 'View profile';
+      author.appendChild(authorLink);
+    } else {
+      author.textContent = c.author;
+    }
+    
     const text = document.createElement('div');
     text.className = 'text';
     text.textContent = c.text;
@@ -236,7 +250,17 @@ function updateFollowUi(following, followerCount) {
 async function loadUser() {
   try {
     const res = await fetch('/api/auth/me');
-    if (!res.ok) throw new Error('No session');
+    if (!res.ok) {
+      if (res.status === 403) {
+        const data = await res.json().catch(() => ({}));
+        if (data.banned) {
+          alert('Your account has been banned and cannot access this platform.');
+          window.location.href = '/api/auth/logout';
+          return;
+        }
+      }
+      throw new Error('No session');
+    }
     const data = await res.json();
     state.user = data.user;
   } catch (_err) {
