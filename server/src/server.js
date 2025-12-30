@@ -162,7 +162,9 @@ app.post('/api/upload', requireAuth, (req, res) => {
         format
       };
 
+      console.log('Attempting to insert post with data:', { ...data, filename: '[url]' });
       const info = await db.insertPost(data);
+      console.log('Post inserted successfully with ID:', info.lastInsertRowid);
       return res.status(201).json({
         id: info.lastInsertRowid,
         editToken,
@@ -171,8 +173,9 @@ app.post('/api/upload', requireAuth, (req, res) => {
         format
       });
     } catch (uploadErr) {
-      console.error('Storage upload error:', uploadErr);
-      return res.status(500).json({ error: 'Failed to save file' });
+      console.error('Storage/DB upload error:', uploadErr);
+      console.error('Error stack:', uploadErr.stack);
+      return res.status(500).json({ error: 'Failed to save file', details: uploadErr.message });
     }
   });
 });
