@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Admin Panel - BeardedVibes</title>
+	<link rel="stylesheet" href="/style.css" />
+	<style>
+		.admin-container {
+			display: flex;
+			gap: 20px;
+			padding: 20px;
+			max-width: 1400px;
+			margin: 0 auto;
+		}
+
+		.admin-sidebar {
+			width: 200px;
+		}
+
+		.admin-content {
+			flex: 1;
+			background: var(--yt-bg);
+			border-radius: 8px;
+			padding: 20px;
+		}
+
+		.admin-tabs {
+			display: flex;
+			gap: 10px;
+			margin-bottom: 20px;
+		}
+
+		.tab-btn {
+			padding: 10px 20px;
+			background: var(--yt-bg-secondary);
+			border: 1px solid var(--yt-border);
+			border-radius: 4px;
+			color: var(--yt-text);
+			cursor: pointer;
+			font-weight: 500;
+			transition: all 0.2s;
+		}
+
+		.tab-btn:hover {
+			background: var(--yt-border);
+		}
+
+		.tab-btn.active {
+			background: #065fd4;
+			border-color: #065fd4;
+			color: white;
+		}
+
+		.tab-content {
+			display: none;
+		}
+
+		.tab-content.active {
+			display: block;
+		}
+
+		.admin-list {
+			display: flex;
+			flex-direction: column;
+			gap: 10px;
+		}
+
+		.admin-item {
+			display: flex;
+			align-items: center;
+			gap: 15px;
+			padding: 15px;
+			background: var(--yt-bg-secondary);
+			border: 1px solid var(--yt-border);
+			border-radius: 6px;
+			transition: all 0.2s;
+		}
+
+		.admin-item:hover {
+			background: var(--yt-border);
+		}
+
+		.admin-item-info {
+			flex: 1;
+		}
+
+		.admin-item-title {
+			font-weight: 600;
+			color: var(--yt-text);
+			margin-bottom: 4px;
+		}
+
+		.admin-item-meta {
+			font-size: 12px;
+			color: var(--yt-text-secondary);
+		}
+
+		.admin-item-actions {
+			display: flex;
+			gap: 8px;
+		}
+
+		.admin-btn {
+			padding: 6px 12px;
+			border: none;
+			border-radius: 4px;
+			cursor: pointer;
+			font-size: 12px;
+			font-weight: 500;
+			transition: all 0.2s;
+		}
+
+		.admin-btn.danger {
+			background: #ff4444;
+			color: white;
+		}
+
+		.admin-btn.danger:hover {
+			background: #cc0000;
+		}
+
+		.admin-btn.warning {
+			background: #ff9800;
+			color: white;
+		}
+
+		.admin-btn.warning:hover {
+			background: #e68900;
+		}
+
+		.admin-btn.success {
+			background: #4caf50;
+			color: white;
+		}
+
+		.admin-btn.success:hover {
+			background: #45a049;
+		}
+
+		.admin-btn:disabled {
+			opacity: 0.5;
+			cursor: not-allowed;
+		}
+
+		.admin-header {
+			margin-bottom: 20px;
+		}
+
+		.admin-header h2 {
+			color: var(--yt-text);
+			margin: 0 0 10px 0;
+		}
+
+		.loading {
+			text-align: center;
+			padding: 20px;
+			color: var(--yt-text-secondary);
+		}
+
+		.error-msg {
+			background: #ffebee;
+			color: #c62828;
+			padding: 12px;
+			border-radius: 4px;
+			margin-bottom: 15px;
+		}
+
+		.success-msg {
+			background: #e8f5e9;
+			color: #2e7d32;
+			padding: 12px;
+			border-radius: 4px;
+			margin-bottom: 15px;
+		}
+
+		.top-bar {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 15px 20px;
+			background: var(--yt-bg-secondary);
+			border-bottom: 1px solid var(--yt-border);
+		}
+
+		.back-link {
+			color: #065fd4;
+			text-decoration: none;
+			font-weight: 500;
+			cursor: pointer;
+		}
+
+		.back-link:hover {
+			text-decoration: underline;
+		}
+	</style>
+</head>
+<body style="background: var(--yt-bg)">
+	<div class="top-bar">
+		<h1 style="margin: 0; color: var(--yt-text)">Admin Panel</h1>
+		<a href="/" class="back-link">← Back to Home</a>
+	</div>
+
+	<div class="admin-container">
+		<div class="admin-content">
+			<div class="admin-tabs">
+				<button class="tab-btn active" data-tab="posts">Posts</button>
+				<button class="tab-btn" data-tab="users">Users</button>
+			</div>
+
+			<div id="posts" class="tab-content active">
+				<div class="admin-header">
+					<h2>Manage Posts</h2>
+					<p style="color: var(--yt-text-secondary); margin: 0">Delete or moderate user videos</p>
+				</div>
+				<div id="posts-list" class="admin-list">
+					<div class="loading">Loading posts...</div>
+				</div>
+			</div>
+
+			<div id="users" class="tab-content">
+				<div class="admin-header">
+					<h2>Manage Users</h2>
+					<p style="color: var(--yt-text-secondary); margin: 0">Ban, verify, or manage user accounts</p>
+				</div>
+				<div id="users-list" class="admin-list">
+					<div class="loading">Loading users...</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		let state = {
+			user: null,
+			posts: [],
+			users: []
+		};
+
+		// Tab switching
+		document.querySelectorAll('.tab-btn').forEach(btn => {
+			btn.addEventListener('click', () => {
+				document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+				document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+				btn.classList.add('active');
+				document.getElementById(btn.dataset.tab).classList.add('active');
+			});
+		});
+
+		// Check auth
+		async function checkAuth() {
+			const res = await fetch('/api/auth/me');
+			const data = await res.json();
+			state.user = data.user;
+
+			if (!state.user || !state.user.isAdmin) {
+				document.body.innerHTML = '<div style="padding: 20px; color: red; text-align: center;"><h2>Access Denied</h2><p>You must be an admin to access this page.</p><a href="/">Back to Home</a></div>';
+				return false;
+			}
+			return true;
+		}
+
+		// Load posts
+		async function loadPosts() {
+			try {
+				const res = await fetch('/api/posts');
+				const data = await res.json();
+				state.posts = data.posts || [];
+				renderPosts();
+			} catch (err) {
+				console.error('Error loading posts:', err);
+				document.getElementById('posts-list').innerHTML = '<div class="error-msg">Failed to load posts</div>';
+			}
+		}
+
+		// Render posts
+		function renderPosts() {
+			const container = document.getElementById('posts-list');
+			if (!state.posts.length) {
+				container.innerHTML = '<div style="color: var(--yt-text-secondary);">No posts found</div>';
+				return;
+			}
+
+			container.innerHTML = state.posts.map(post => `
+				<div class="admin-item">
+					<div class="admin-item-info">
+						<div class="admin-item-title">${escapeHtml(post.title || 'Untitled')}</div>
+						<div class="admin-item-meta">
+							By ${escapeHtml(post.uploaderName || 'Unknown')} • 
+							${new Date(post.createdAt).toLocaleDateString()} •
+							${post.likes || 0} likes
+						</div>
+					</div>
+					<div class="admin-item-actions">
+						<button class="admin-btn danger" onclick="deletePost(${post.id})">Delete</button>
+					</div>
+				</div>
+			`).join('');
+		}
+
+		// Delete post
+		async function deletePost(postId) {
+			if (!confirm('Are you sure you want to delete this post?')) return;
+
+			try {
+				const res = await fetch(`/api/post/${postId}`, { method: 'DELETE' });
+				const data = await res.json();
+
+				if (res.ok) {
+					state.posts = state.posts.filter(p => p.id !== postId);
+					renderPosts();
+					showSuccess('Post deleted successfully');
+				} else {
+					showError(data.error || 'Failed to delete post');
+				}
+			} catch (err) {
+				showError('Error deleting post: ' + err.message);
+			}
+		}
+
+		// Load users
+		async function loadUsers() {
+			try {
+				const res = await fetch('/api/admin/users');
+				const data = await res.json();
+				state.users = data.users || [];
+				renderUsers();
+			} catch (err) {
+				console.error('Error loading users:', err);
+				document.getElementById('users-list').innerHTML = '<div class="error-msg">Failed to load users</div>';
+			}
+		}
+
+		// Render users
+		function renderUsers() {
+			const container = document.getElementById('users-list');
+			if (!state.users.length) {
+				container.innerHTML = '<div style="color: var(--yt-text-secondary);">No users found</div>';
+				return;
+			}
+
+			container.innerHTML = state.users.map(user => `
+				<div class="admin-item">
+					<div class="admin-item-info">
+						<div class="admin-item-title">${escapeHtml(user.username)}</div>
+						<div class="admin-item-meta">
+							ID: ${user.discordId} •
+							${user.isBanned ? '🚫 Banned' : '✓ Active'} •
+							${user.isVerified ? '✓ Verified' : 'Unverified'}
+						</div>
+					</div>
+					<div class="admin-item-actions">
+						${user.isBanned 
+							? `<button class="admin-btn success" onclick="toggleBan('${user.discordId}', false)">Unban</button>`
+							: `<button class="admin-btn danger" onclick="toggleBan('${user.discordId}', true)">Ban</button>`
+						}
+						${user.isVerified
+							? `<button class="admin-btn warning" onclick="toggleVerify('${user.discordId}', false)">Unverify</button>`
+							: `<button class="admin-btn success" onclick="toggleVerify('${user.discordId}', true)">Verify</button>`
+						}
+					</div>
+				</div>
+			`).join('');
+		}
+
+		// Ban/Unban user
+		async function toggleBan(discordId, banned) {
+			const action = banned ? 'ban' : 'unban';
+			if (!confirm(`Are you sure you want to ${action} this user?`)) return;
+
+			try {
+				const res = await fetch(`/api/admin/user/${discordId}/ban`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ banned })
+				});
+				const data = await res.json();
+
+				if (res.ok) {
+					const user = state.users.find(u => u.discordId === discordId);
+					if (user) user.isBanned = banned;
+					renderUsers();
+					showSuccess(data.message);
+				} else {
+					showError(data.error || 'Failed to update user');
+				}
+			} catch (err) {
+				showError('Error: ' + err.message);
+			}
+		}
+
+		// Verify/Unverify user
+		async function toggleVerify(discordId, verified) {
+			const action = verified ? 'verify' : 'unverify';
+			if (!confirm(`Are you sure you want to ${action} this user?`)) return;
+
+			try {
+				const res = await fetch(`/api/admin/user/${discordId}/verify`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ verified })
+				});
+				const data = await res.json();
+
+				if (res.ok) {
+					const user = state.users.find(u => u.discordId === discordId);
+					if (user) user.isVerified = verified;
+					renderUsers();
+					showSuccess(data.message);
+				} else {
+					showError(data.error || 'Failed to update user');
+				}
+			} catch (err) {
+				showError('Error: ' + err.message);
+			}
+		}
+
+		function escapeHtml(text) {
+			const div = document.createElement('div');
+			div.textContent = text;
+			return div.innerHTML;
+		}
+
+		function showSuccess(msg) {
+			const container = document.querySelector('.admin-content');
+			const el = document.createElement('div');
+			el.className = 'success-msg';
+			el.textContent = msg;
+			container.insertBefore(el, container.firstChild);
+			setTimeout(() => el.remove(), 3000);
+		}
+
+		function showError(msg) {
+			const container = document.querySelector('.admin-content');
+			const el = document.createElement('div');
+			el.className = 'error-msg';
+			el.textContent = msg;
+			container.insertBefore(el, container.firstChild);
+			setTimeout(() => el.remove(), 3000);
+		}
+
+		// Init
+		async function init() {
+			if (!(await checkAuth())) return;
+			loadPosts();
+			loadUsers();
+		}
+
+		init();
+	</script>
+</body>
+</html>

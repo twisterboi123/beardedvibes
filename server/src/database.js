@@ -361,6 +361,11 @@ export function createDatabase(config) {
       async getUserByDiscordId(discordId) {
         const res = await pool.query('SELECT * FROM users WHERE discordId = $1 LIMIT 1', [discordId]);
         return res.rows[0] || null;
+      },
+
+      async getAllUsers() {
+        const res = await pool.query('SELECT id, discordId, username, avatar, isAdmin, isBanned, isVerified, createdAt FROM users ORDER BY createdAt DESC');
+        return res.rows;
       }
     };
   }
@@ -691,6 +696,10 @@ export function createDatabase(config) {
 
     async getUserByDiscordId(discordId) {
       return db.prepare('SELECT * FROM users WHERE discordId = ? LIMIT 1').get(discordId) || null;
+    },
+
+    async getAllUsers() {
+      return db.prepare('SELECT id, discordId, username, avatar, isAdmin, isBanned, isVerified, createdAt FROM users ORDER BY createdAt DESC').all();
     }
   };
 }

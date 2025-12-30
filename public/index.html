@@ -63,6 +63,11 @@
         <span class="nav-icon">👍</span>
         <span class="nav-label">Liked</span>
       </a>
+      <hr style="margin: 15px 0; border: none; border-top: 1px solid var(--yt-border);">
+      <a href="/admin.html" class="nav-item" id="admin-nav-item" style="display: none;">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">Admin</span>
+      </a>
     </nav>
   </aside>
 
@@ -298,6 +303,11 @@
         if (!res.ok) throw new Error('Not logged in');
         const data = await res.json();
         currentUser = data.user;
+
+        // Show admin link if user is admin
+        if (currentUser?.isAdmin) {
+          document.getElementById('admin-nav-item').style.display = 'flex';
+        }
       } catch (_err) {
         currentUser = null;
       }

@@ -632,6 +632,11 @@ app.get('/upload', (_req, res) => {
 });
 
 // Admin endpoints
+app.get('/api/admin/users', requireAdmin, async (req, res) => {
+	const users = await db.getAllUsers();
+	return res.json({ users });
+});
+
 app.delete('/api/post/:id', requireAdmin, async (req, res) => {
 	const id = Number(req.params.id);
 	if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid post id' });
