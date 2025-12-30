@@ -10,6 +10,11 @@ Your website now has a complete admin system with the following features:
   - `isBanned` - Boolean, prevents banned users from logging in
   - `isVerified` - Boolean, marks verified creators
 
+### Admin Dashboard
+- **URL:** `/admin.html`
+- **Features:** Delete posts, ban/unban users, verify creators
+- **Access:** Only visible to users with `isAdmin=true`
+
 ### Admin Endpoints
 
 #### 1. Delete a Post
@@ -48,56 +53,52 @@ Content-Type: application/json
 
 ### Setup: Making Yourself an Admin
 
-1. **Set a SETUP_SECRET in your .env file:**
-   ```env
-   SETUP_SECRET=your-secure-secret-here
-   ```
+**Simple Method (Recommended):**
 
-2. **Get your Discord ID:**
+1. **Get your Discord ID:**
    - In Discord, enable Developer Mode (Settings → Advanced → Developer Mode)
    - Right-click your avatar and select "Copy User ID"
 
-3. **Call the setup endpoint:**
-   ```bash
-   curl -X POST http://localhost:3000/api/setup/promote-admin \
-     -H "Content-Type: application/json" \
-     -d '{"secret":"your-secure-secret-here","discordId":"YOUR_DISCORD_ID"}'
+2. **Add your Discord ID to `.env`:**
+   ```env
+   ADMIN_IDS=YOUR_DISCORD_ID,YOUR_FRIENDS_DISCORD_ID
    ```
-   
-   Or in your browser's developer console (F12):
-   ```javascript
-   fetch('/api/setup/promote-admin', {
-     method: 'POST',
-     headers: { 'Content-Type': 'application/json' },
-     body: JSON.stringify({ 
-       secret: 'your-secure-secret-here',
-       discordId: 'YOUR_DISCORD_ID' 
-     })
-   }).then(r => r.json()).then(console.log)
-   ```
+   (Separate multiple IDs with commas)
 
-4. **Log out and back in** for the admin status to take effect
+3. **On Render:**
+   - Go to your service → Environment
+   - Add/update `ADMIN_IDS` with your Discord IDs
+   - Save (auto-redeploys)
+
+4. **Log out and back in** — you'll automatically be an admin!
+
+**Alternative Method (Setup Endpoint):**
+
+If you prefer using the setup endpoint, set `SETUP_SECRET` in your `.env` and call:
+```javascript
+fetch('/api/setup/promote-admin', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ 
+    secret: 'your-setup-secret',
+    discordId: 'YOUR_DISCORD_ID' 
+  })
+}).then(r => r.json()).then(console.log)
+```
 
 ### Security Features
 
 - **Ban Prevention**: Users marked as `isBanned` cannot log in via Discord OAuth
 - **Admin-Only Endpoints**: All admin endpoints require the user to be authenticated and have `isAdmin=true`
-- **Setup Secret**: The admin promotion endpoint requires a setup secret from your `.env` file to prevent unauthorized admin creation
+- **Auto-Promotion**: Users in `ADMIN_IDS` are automatically promoted on login
 
 ### Using Admin Features
 
-Once you're an admin, you can:
+Once you're an admin, you'll see:
+- **⚙️ Admin link** in the sidebar
+- **Admin Dashboard** at `/admin.html` with:
+  - Posts tab: View and delete all videos
+  - Users tab: Ban/unban and verify/unverify users
 
-1. **Delete posts** - Use the DELETE /api/post/:id endpoint
-2. **Ban/unban users** - Prevents them from accessing the site
-3. **Verify creators** - Marks users as official/verified creators
-4. **Manage other admins** - Promote or demote other users to admin
+The dashboard updates in real-time and shows success/error messages for all actions.
 
-### Next Steps: Frontend Admin Dashboard
-
-The backend is ready! You can now:
-- Create an admin dashboard page to manage users and posts
-- Add delete/ban/verify buttons to the admin interface
-- Display verified badges on creator profiles
-
-Would you like me to create an admin dashboard page for you?

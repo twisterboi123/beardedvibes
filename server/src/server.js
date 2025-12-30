@@ -589,12 +589,21 @@ app.get('/api/auth/callback', async (req, res) => {
 			avatar: discordUser.avatar ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png` : null
 		});
 
+		// Auto-promote admins from ADMIN_IDS env variable
+		const adminIds = process.env.ADMIN_IDS ? process.env.ADMIN_IDS.split(',').map(id => id.trim()) : [];
+		if (adminIds.includes(discordUser.id)) {
+			await db.setAdmin(discordUser.id, true);
+		}
+
+		// Refresh user data after potential admin promotion
+		const updatedUser = await db.getUserByDiscordId(discordUser.id) || user;
+
 		// Check if user is banned
-		if (user.isBanned || user.isbanned) {
+		if (updatedUser.isBanned || updatedUser.isbanned) {
 			return res.status(403).send('Your account has been banned and cannot access this platform.');
 		}
 
-		const session = signSession(user);
+		const session = signSession(updatedUser);
 		res.cookie('session', session, sessionCookieOptions);
 
 		return res.redirect(`${frontendBase}/`);
