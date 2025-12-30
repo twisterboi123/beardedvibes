@@ -29,6 +29,10 @@
         </svg>
         Sign in
       </button>
+      <div id="auth-menu" class="auth-menu" style="display:none;">
+        <button class="auth-option" data-provider="discord">Sign in with Discord</button>
+        <button class="auth-option" data-provider="google">Sign in with Google (coming soon)</button>
+      </div>
       <div id="user-menu" class="user-menu" style="display:none;">
         <span id="user-avatar" class="user-avatar">👤</span>
         <button id="logout-btn" class="ghost-btn">Sign out</button>
@@ -89,6 +93,7 @@
   <script>
     const loginBtn = document.getElementById('login-btn');
     const loading = document.getElementById('loading');
+    const authMenu = document.getElementById('auth-menu');
     const logoutBtn = document.getElementById('logout-btn');
     const uploadBtn = document.getElementById('upload-btn');
     const userMenu = document.getElementById('user-menu');
@@ -109,10 +114,34 @@
       window.location.href = '/upload';
     });
 
-    loginBtn.addEventListener('click', () => {
-      // Navigate directly so the server can show a friendly setup page
-      window.location.href = '/api/auth/login';
+    function toggleAuthMenu(show) {
+      const shouldShow = typeof show === 'boolean' ? show : authMenu.style.display === 'none';
+      authMenu.style.display = shouldShow ? 'flex' : 'none';
+    }
+
+    loginBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      toggleAuthMenu();
     });
+
+    document.addEventListener('click', (e) => {
+      if (!authMenu.contains(e.target) && e.target !== loginBtn) {
+        toggleAuthMenu(false);
+      }
+    });
+
+    authMenu.querySelectorAll('.auth-option').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const provider = btn.dataset.provider;
+        toggleAuthMenu(false);
+        if (provider === 'google') {
+          alert('Google sign-in is coming soon.');
+          return;
+        }
+        window.location.href = '/api/auth/login';
+      });
+    });
+
     logoutBtn.addEventListener('click', async () => {
       await fetch('/api/auth/logout', { method: 'POST' });
       window.location.href = '/';
@@ -134,8 +163,15 @@
     function updateAuthUi() {
       if (currentUser) {
         loginBtn.style.display = 'none';
+        toggleAuthMenu(false);
         userMenu.style.display = 'flex';
         setAvatar(userAvatar, currentUser.avatar, currentUser.username || 'User');
+        userAvatar.style.cursor = 'pointer';
+        userAvatar.title = 'Open your profile';
+        userAvatar.onclick = (e) => {
+          e.stopPropagation();
+          window.location.href = '/profile.html?id=me';
+        };
       } else {
         loginBtn.style.display = 'block';
         userMenu.style.display = 'none';
