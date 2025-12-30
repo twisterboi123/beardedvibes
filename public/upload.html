@@ -5,6 +5,80 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Upload | BeardedVibes</title>
   <link rel="stylesheet" href="/style.css">
+  <style>
+    .upload-header h1 {
+      margin: 0 0 8px 0;
+      font-size: 28px;
+      font-weight: 700;
+      background: var(--yt-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .eyebrow {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--yt-accent);
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .checkbox-row {
+      flex-direction: row !important;
+      align-items: center;
+      gap: 12px !important;
+      padding: 14px 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    .checkbox-row:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .checkbox-row input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      accent-color: #ff6a00;
+    }
+    #upload-btn {
+      background: var(--yt-gradient);
+      border: none;
+      color: white;
+      padding: 14px 32px;
+      border-radius: var(--radius-md);
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      box-shadow: 0 8px 24px rgba(255, 106, 0, 0.3);
+    }
+    #upload-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(255, 106, 0, 0.4);
+    }
+    #upload-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    .status {
+      padding: 14px 18px;
+      border-radius: var(--radius-md);
+      font-weight: 500;
+    }
+    .status.error {
+      background: rgba(255, 68, 68, 0.15);
+      border: 1px solid rgba(255, 68, 68, 0.3);
+      color: #ff6b6b;
+    }
+    .status.success {
+      background: rgba(76, 175, 80, 0.15);
+      border: 1px solid rgba(76, 175, 80, 0.3);
+      color: #81c784;
+    }
+  </style>
 </head>
 <body class="upload-body">
   <header class="topbar">
@@ -15,7 +89,7 @@
       </div>
     </div>
     <div class="topbar-right">
-      <button id="home-btn" class="ghost-btn">Home</button>
+      <button id="home-btn" class="ghost-btn" onclick="window.location.href='/'">Home</button>
       <button id="logout-btn" class="ghost-btn" style="display:none;">Sign out</button>
     </div>
   </header>
@@ -25,7 +99,7 @@
       <div class="upload-header">
         <div>
           <p class="eyebrow">Creator Studio</p>
-          <h1>Upload a video</h1>
+          <h1>Upload Content</h1>
           <p class="muted">Choose short or long form. Save as draft to edit later, or publish immediately.</p>
         </div>
         <div class="pill" id="session-pill">Checking session…</div>
@@ -47,6 +121,7 @@
           <div class="category-tabs" id="format-toggle">
             <button type="button" class="tab" data-format="short">Short (vertical / quick)</button>
             <button type="button" class="tab active" data-format="long">Long form</button>
+            <button type="button" class="tab" data-format="photo">Photo</button>
           </div>
           <input type="hidden" name="format" id="format-input" value="long">
         </div>
@@ -60,7 +135,7 @@
           <span>Video or image file</span>
           <div class="file-drop" id="dropzone">
             <input type="file" id="file" name="file" accept="video/mp4,video/webm,image/jpeg,image/png,image/webp" required>
-            <p id="file-label">Drag & drop or click to choose (mp4, webm, jpg, png, webp)</p>
+            <p id="file-label">Drag & drop or click to choose<br><small style="color: var(--yt-text-secondary);">mp4, webm, jpg, png, webp</small></p>
           </div>
         </label>
 

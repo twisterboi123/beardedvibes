@@ -54,6 +54,10 @@
         <span class="nav-icon">🎬</span>
         <span class="nav-label">Shorts</span>
       </a>
+      <a href="#" class="nav-item" data-feed="photos">
+        <span class="nav-icon">📷</span>
+        <span class="nav-label">Photos</span>
+      </a>
       <hr class="nav-divider">
       <a href="#" class="nav-item" data-feed="history">
         <span class="nav-icon">🕐</span>
@@ -287,6 +291,7 @@
       const endpoint = (
         feed === 'home' ? '/api/posts' :
         feed === 'trending' ? '/api/posts/trending' :
+        feed === 'photos' ? '/api/posts/photos' :
         feed === 'liked' ? '/api/posts/liked' :
         feed === 'history' ? '/api/posts/history' :
         feed === 'watchlater' ? '/api/posts/watchlater' :

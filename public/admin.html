@@ -6,50 +6,56 @@
 	<title>Admin Panel - BeardedVibes</title>
 	<link rel="stylesheet" href="/style.css" />
 	<style>
-		.admin-container {
-			display: flex;
-			gap: 20px;
-			padding: 20px;
-			max-width: 1400px;
-			margin: 0 auto;
+		body {
+			background: linear-gradient(180deg, var(--yt-bg) 0%, #0a0a0a 100%);
+			min-height: 100vh;
 		}
 
-		.admin-sidebar {
-			width: 200px;
+		.admin-container {
+			max-width: 1200px;
+			margin: 0 auto;
+			padding: 24px;
 		}
 
 		.admin-content {
-			flex: 1;
-			background: var(--yt-bg);
-			border-radius: 8px;
-			padding: 20px;
+			background: linear-gradient(180deg, rgba(24, 24, 24, 0.9) 0%, rgba(18, 18, 18, 0.95) 100%);
+			border: 1px solid rgba(255, 255, 255, 0.08);
+			border-radius: var(--radius-xl);
+			padding: 28px;
+			box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
 		}
 
 		.admin-tabs {
 			display: flex;
-			gap: 10px;
-			margin-bottom: 20px;
+			gap: 12px;
+			margin-bottom: 28px;
+			padding-bottom: 20px;
+			border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 		}
 
 		.tab-btn {
-			padding: 10px 20px;
-			background: var(--yt-bg-secondary);
-			border: 1px solid var(--yt-border);
-			border-radius: 4px;
+			padding: 12px 24px;
+			background: rgba(255, 255, 255, 0.05);
+			border: 1px solid rgba(255, 255, 255, 0.1);
+			border-radius: var(--radius-md);
 			color: var(--yt-text);
 			cursor: pointer;
-			font-weight: 500;
-			transition: all 0.2s;
+			font-weight: 600;
+			font-size: 14px;
+			transition: all var(--transition-fast);
 		}
 
 		.tab-btn:hover {
-			background: var(--yt-border);
+			background: rgba(255, 255, 255, 0.08);
+			border-color: rgba(255, 255, 255, 0.15);
+			transform: translateY(-2px);
 		}
 
 		.tab-btn.active {
-			background: #065fd4;
-			border-color: #065fd4;
+			background: var(--yt-gradient);
+			border-color: transparent;
 			color: white;
+			box-shadow: 0 8px 24px rgba(255, 106, 0, 0.3);
 		}
 
 		.tab-content {
@@ -58,27 +64,35 @@
 
 		.tab-content.active {
 			display: block;
+			animation: fadeIn 0.3s ease;
+		}
+
+		@keyframes fadeIn {
+			from { opacity: 0; transform: translateY(10px); }
+			to { opacity: 1; transform: translateY(0); }
 		}
 
 		.admin-list {
 			display: flex;
 			flex-direction: column;
-			gap: 10px;
+			gap: 12px;
 		}
 
 		.admin-item {
 			display: flex;
 			align-items: center;
-			gap: 15px;
-			padding: 15px;
-			background: var(--yt-bg-secondary);
-			border: 1px solid var(--yt-border);
-			border-radius: 6px;
-			transition: all 0.2s;
+			gap: 16px;
+			padding: 18px 20px;
+			background: rgba(255, 255, 255, 0.03);
+			border: 1px solid rgba(255, 255, 255, 0.06);
+			border-radius: var(--radius-md);
+			transition: all var(--transition-fast);
 		}
 
 		.admin-item:hover {
-			background: var(--yt-border);
+			background: rgba(255, 255, 255, 0.06);
+			border-color: rgba(255, 255, 255, 0.1);
+			transform: translateX(4px);
 		}
 
 		.admin-item-info {
@@ -88,116 +102,150 @@
 		.admin-item-title {
 			font-weight: 600;
 			color: var(--yt-text);
-			margin-bottom: 4px;
+			margin-bottom: 6px;
+			font-size: 15px;
 		}
 
 		.admin-item-meta {
-			font-size: 12px;
+			font-size: 13px;
 			color: var(--yt-text-secondary);
 		}
 
 		.admin-item-actions {
 			display: flex;
-			gap: 8px;
+			gap: 10px;
+			flex-wrap: wrap;
 		}
 
 		.admin-btn {
-			padding: 6px 12px;
+			padding: 8px 16px;
 			border: none;
-			border-radius: 4px;
+			border-radius: var(--radius-sm);
 			cursor: pointer;
-			font-size: 12px;
-			font-weight: 500;
-			transition: all 0.2s;
+			font-size: 13px;
+			font-weight: 600;
+			transition: all var(--transition-fast);
 		}
 
 		.admin-btn.danger {
-			background: #ff4444;
+			background: linear-gradient(135deg, #ff4444, #cc0000);
 			color: white;
 		}
 
 		.admin-btn.danger:hover {
-			background: #cc0000;
+			box-shadow: 0 4px 16px rgba(255, 68, 68, 0.4);
+			transform: translateY(-2px);
 		}
 
 		.admin-btn.warning {
-			background: #ff9800;
+			background: linear-gradient(135deg, #ff9800, #e68900);
 			color: white;
 		}
 
 		.admin-btn.warning:hover {
-			background: #e68900;
+			box-shadow: 0 4px 16px rgba(255, 152, 0, 0.4);
+			transform: translateY(-2px);
 		}
 
 		.admin-btn.success {
-			background: #4caf50;
+			background: linear-gradient(135deg, #4caf50, #388e3c);
 			color: white;
 		}
 
 		.admin-btn.success:hover {
-			background: #45a049;
+			box-shadow: 0 4px 16px rgba(76, 175, 80, 0.4);
+			transform: translateY(-2px);
 		}
 
 		.admin-btn:disabled {
 			opacity: 0.5;
 			cursor: not-allowed;
+			transform: none !important;
+			box-shadow: none !important;
 		}
 
 		.admin-header {
-			margin-bottom: 20px;
+			margin-bottom: 24px;
 		}
 
 		.admin-header h2 {
 			color: var(--yt-text);
-			margin: 0 0 10px 0;
+			margin: 0 0 8px 0;
+			font-size: 22px;
+			font-weight: 700;
 		}
 
 		.loading {
 			text-align: center;
-			padding: 20px;
+			padding: 40px;
 			color: var(--yt-text-secondary);
+			font-size: 15px;
 		}
 
 		.error-msg {
-			background: #ffebee;
-			color: #c62828;
-			padding: 12px;
-			border-radius: 4px;
-			margin-bottom: 15px;
+			background: rgba(255, 68, 68, 0.15);
+			border: 1px solid rgba(255, 68, 68, 0.3);
+			color: #ff6b6b;
+			padding: 14px 18px;
+			border-radius: var(--radius-md);
+			margin-bottom: 16px;
+			font-weight: 500;
 		}
 
 		.success-msg {
-			background: #e8f5e9;
-			color: #2e7d32;
-			padding: 12px;
-			border-radius: 4px;
-			margin-bottom: 15px;
+			background: rgba(76, 175, 80, 0.15);
+			border: 1px solid rgba(76, 175, 80, 0.3);
+			color: #81c784;
+			padding: 14px 18px;
+			border-radius: var(--radius-md);
+			margin-bottom: 16px;
+			font-weight: 500;
 		}
 
 		.top-bar {
 			display: flex;
 			align-items: center;
 			justify-content: space-between;
-			padding: 15px 20px;
-			background: var(--yt-bg-secondary);
-			border-bottom: 1px solid var(--yt-border);
+			padding: 18px 24px;
+			background: linear-gradient(180deg, rgba(20, 20, 20, 0.98) 0%, rgba(15, 15, 15, 0.95) 100%);
+			border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+			backdrop-filter: blur(12px);
+			position: sticky;
+			top: 0;
+			z-index: 100;
+		}
+
+		.top-bar h1 {
+			margin: 0;
+			font-size: 24px;
+			font-weight: 700;
+			background: var(--yt-gradient);
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
 		}
 
 		.back-link {
-			color: #065fd4;
+			color: var(--yt-accent);
 			text-decoration: none;
-			font-weight: 500;
-			cursor: pointer;
+			font-weight: 600;
+			padding: 10px 18px;
+			border-radius: var(--radius-md);
+			background: rgba(62, 166, 255, 0.1);
+			border: 1px solid rgba(62, 166, 255, 0.2);
+			transition: all var(--transition-fast);
 		}
 
 		.back-link:hover {
-			text-decoration: underline;
+			background: rgba(62, 166, 255, 0.15);
+			transform: translateY(-2px);
+			box-shadow: 0 4px 16px rgba(62, 166, 255, 0.2);
 		}
 	</style>
 </head>
-<body style="background: var(--yt-bg)">
+<body>
 	<div class="top-bar">
-		<h1 style="margin: 0; color: var(--yt-text)">Admin Panel</h1>
+		<h1>⚙️ Admin Panel</h1>
 		<a href="/" class="back-link">← Back to Home</a>
 	</div>
 

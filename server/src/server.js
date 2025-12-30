@@ -295,8 +295,28 @@ app.get('/api/posts/trending', async (req, res) => {
 		likes: row.likes,
 		createdAt: row.createdAt,
 		uploaderName: row.uploaderName,
-		uploaderAvatar: row.uploaderAvatar || null,
+		uploaderAvatar: row.uploaderAvatar || null,		uploaderDiscordId: row.uploaderDiscordId || null,
 		liked: likedSet ? likedSet.has(Number(row.id)) : false
+	})) });
+});
+
+// Photos feed: only photos
+app.get('/api/posts/photos', async (req, res) => {
+	const rows = await db.listPosts();
+	const photos = rows.filter(row => row.format === 'photo');
+	const likedSet = req.user ? new Set(await db.getUserLikes(req.user.id)) : null;
+	return res.json({ posts: photos.map((row) => ({
+		id: row.id,
+		title: row.title,
+		description: row.description,
+		fileUrl: storage.getUrl(row.filename),
+		type: row.type,
+		format: row.format || 'long',
+		likes: row.likes,
+		createdAt: row.createdAt,
+		uploaderName: row.uploaderName,
+		uploaderAvatar: row.uploaderAvatar || null,
+		uploaderDiscordId: row.uploaderDiscordId || null,		liked: likedSet ? likedSet.has(Number(row.id)) : false
 	})) });
 });
 
