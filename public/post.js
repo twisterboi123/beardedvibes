@@ -300,6 +300,9 @@ async function init() {
     const uploaderName = data.uploaderName || 'Unknown uploader';
     uploaderTag.textContent = data.uploaderDiscordId ? `@${data.uploaderDiscordId}` : 'Uploader unknown';
     uploaderNameEl.textContent = uploaderName + (data.uploaderVerified ? ' ✓' : '');
+    if (state.uploaderDiscordId) {
+      uploaderNameEl.href = `/profile.html?id=${state.uploaderDiscordId}`;
+    }
     setAvatar(uploaderAvatarEl, data.uploaderAvatar, uploaderName);
     state.uploaderDiscordId = data.uploaderDiscordId || null;
     likeCount.textContent = data.likes ?? 0;

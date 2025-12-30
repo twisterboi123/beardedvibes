@@ -375,6 +375,42 @@ export function createDatabase(config) {
       async getAllUsers() {
         const res = await pool.query('SELECT id, discordId, username, avatar, isAdmin, isBanned, isVerified, createdAt FROM users ORDER BY createdAt DESC');
         return res.rows;
+      },
+
+      async getUserProfile(discordId) {
+        const user = await this.getUserByDiscordId(discordId);
+        if (!user) return null;
+
+        const videosRes = await pool.query(
+          `SELECT id, filename, type, title, description, format, createdat AS "createdAt", 
+           COALESCE(lc.count, 0) AS likes
+           FROM posts p
+           LEFT JOIN (SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId) lc ON lc.postId = p.id
+           WHERE uploaderdiscordid = $1 AND status = 'published'
+           ORDER BY createdat DESC`,
+          [discordId]
+        );
+
+        const likesRes = await pool.query(
+          `SELECT COALESCE(SUM(lc.count), 0)::INT AS total
+           FROM posts p
+           LEFT JOIN (SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId) lc ON lc.postId = p.id
+           WHERE p.uploaderdiscordid = $1 AND p.status = 'published'`,
+          [discordId]
+        );
+
+        const followersRes = await pool.query(
+          'SELECT COUNT(*)::INT AS count FROM follows WHERE followingDiscordId = $1',
+          [discordId]
+        );
+
+        return {
+          ...user,
+          videos: videosRes.rows,
+          totalVideos: videosRes.rows.length,
+          totalLikes: likesRes.rows[0]?.total || 0,
+          followerCount: followersRes.rows[0]?.count || 0
+        };
       }
     };
   }
@@ -705,6 +741,39 @@ export function createDatabase(config) {
 
     async getUserByDiscordId(discordId) {
       return db.prepare('SELECT * FROM users WHERE discordId = ? LIMIT 1').get(discordId) || null;
+    },
+
+    async getUserProfile(discordId) {
+      const user = this.getUserByDiscordId(discordId);
+      if (!user) return null;
+
+      const videos = db.prepare(
+        `SELECT p.id, p.filename, p.type, p.title, p.description, p.format, p.createdAt,
+         COALESCE(lc.count, 0) AS likes
+         FROM posts p
+         LEFT JOIN (SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId) lc ON lc.postId = p.id
+         WHERE p.uploaderDiscordId = ? AND p.status = 'published'
+         ORDER BY p.createdAt DESC`
+      ).all(discordId);
+
+      const totalLikes = db.prepare(
+        `SELECT COALESCE(SUM(lc.count), 0) AS total
+         FROM posts p
+         LEFT JOIN (SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId) lc ON lc.postId = p.id
+         WHERE p.uploaderDiscordId = ? AND p.status = 'published'`
+      ).get(discordId);
+
+      const followerCount = db.prepare(
+        'SELECT COUNT(*) AS count FROM follows WHERE followingDiscordId = ?'
+      ).get(discordId);
+
+      return {
+        ...user,
+        videos,
+        totalVideos: videos.length,
+        totalLikes: totalLikes?.total || 0,
+        followerCount: followerCount?.count || 0
+      };
     },
 
     async getAllUsers() {

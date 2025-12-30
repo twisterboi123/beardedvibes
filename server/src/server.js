@@ -398,6 +398,19 @@ app.post('/api/post/:id/watchlater', requireAuth, async (req, res) => {
 });
 
 // Follow endpoints
+app.get('/api/user/:discordId/profile', async (req, res) => {
+	const discordId = req.params.discordId;
+	if (!discordId) return res.status(400).json({ error: 'Invalid user' });
+	try {
+		const profile = await db.getUserProfile(discordId);
+		if (!profile) return res.status(404).json({ error: 'User not found' });
+		return res.json(profile);
+	} catch (err) {
+		console.error('Profile fetch error:', err);
+		return res.status(500).json({ error: 'Failed to load profile' });
+	}
+});
+
 app.get('/api/user/:discordId/follow', async (req, res) => {
 	const targetDiscordId = req.params.discordId;
 	if (!targetDiscordId) return res.status(400).json({ error: 'Invalid user' });

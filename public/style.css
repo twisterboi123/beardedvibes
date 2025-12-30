@@ -783,6 +783,26 @@ button:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 16px 34
   color: var(--text);
 }
 
+.header-actions .home-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--yt-bg-secondary);
+  border: 1px solid var(--yt-border);
+  border-radius: 20px;
+  color: var(--yt-text);
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.header-actions .home-link:hover {
+  background: var(--yt-border);
+  border-color: #065fd4;
+}
+
 .brand {
   font-weight: 700;
   letter-spacing: 0.6px;

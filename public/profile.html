@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Profile - BeardedVibes</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-left">
+      <button id="menu-btn" class="icon-btn" aria-label="Menu">☰</button>
+      <a href="/" class="logo">BeardedVibes</a>
+    </div>
+    <div class="topbar-right">
+      <div class="user-menu" id="user-menu">
+        <div class="user-avatar" id="user-avatar"></div>
+      </div>
+    </div>
+  </header>
+
+  <aside class="sidebar" id="sidebar">
+    <nav class="sidebar-nav">
+      <a href="/" class="nav-item">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Home</span>
+      </a>
+      <a href="/shorts.html" class="nav-item">
+        <span class="nav-icon">📱</span>
+        <span class="nav-label">Shorts</span>
+      </a>
+      <a href="#" class="nav-item" data-feed="trending">
+        <span class="nav-icon">🔥</span>
+        <span class="nav-label">Trending</span>
+      </a>
+      <hr style="margin: 15px 0; border: none; border-top: 1px solid var(--yt-border);">
+      <a href="#" class="nav-item" data-feed="history">
+        <span class="nav-icon">🕐</span>
+        <span class="nav-label">History</span>
+      </a>
+      <a href="#" class="nav-item" data-feed="watchlater">
+        <span class="nav-icon">⏰</span>
+        <span class="nav-label">Watch Later</span>
+      </a>
+      <a href="#" class="nav-item" data-feed="liked">
+        <span class="nav-icon">👍</span>
+        <span class="nav-label">Liked</span>
+      </a>
+      <hr style="margin: 15px 0; border: none; border-top: 1px solid var(--yt-border);">
+      <a href="/admin.html" class="nav-item" id="admin-nav-item" style="display: none;">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">Admin</span>
+      </a>
+    </nav>
+  </aside>
+
+  <main class="content" style="padding: 20px;">
+    <div id="profile-container" style="max-width: 1200px; margin: 0 auto;">
+      <div class="loading-state">Loading profile...</div>
+    </div>
+  </main>
+
+  <script>
+    const sidebar = document.getElementById('sidebar');
+    const menuBtn = document.getElementById('menu-btn');
+    const userMenu = document.getElementById('user-menu');
+    const userAvatar = document.getElementById('user-avatar');
+
+    menuBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('collapsed');
+    });
+
+    let currentUser = null;
+
+    function setAvatar(el, url, fallback) {
+      el.innerHTML = '';
+      if (url) {
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = fallback || 'Avatar';
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'cover';
+        el.appendChild(img);
+      } else {
+        el.textContent = (fallback || 'U').charAt(0).toUpperCase();
+        el.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        el.style.display = 'flex';
+        el.style.alignItems = 'center';
+        el.style.justifyContent = 'center';
+        el.style.color = 'white';
+        el.style.fontWeight = '600';
+      }
+    }
+
+    async function loadUser() {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (!res.ok) throw new Error('Not logged in');
+        const data = await res.json();
+        currentUser = data.user;
+
+        if (currentUser?.isAdmin) {
+          document.getElementById('admin-nav-item').style.display = 'flex';
+        }
+      } catch (_err) {
+        currentUser = null;
+      }
+      updateAuthUi();
+    }
+
+    function updateAuthUi() {
+      if (currentUser) {
+        userMenu.style.display = 'flex';
+        setAvatar(userAvatar, currentUser.avatar, currentUser.username || 'User');
+      } else {
+        userMenu.innerHTML = '<a href="/api/auth/login" class="login-btn">Login</a>';
+      }
+    }
+
+    async function loadProfile() {
+      const params = new URLSearchParams(window.location.search);
+      const discordId = params.get('id');
+
+      if (!discordId) {
+        document.getElementById('profile-container').innerHTML = '<div style="text-align: center; padding: 40px;"><h2>Profile not found</h2><p>No user specified.</p></div>';
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/user/${discordId}/profile`);
+        if (!res.ok) throw new Error('Profile not found');
+        const data = await res.json();
+        renderProfile(data);
+      } catch (err) {
+        document.getElementById('profile-container').innerHTML = `<div style="text-align: center; padding: 40px;"><h2>Error</h2><p>${err.message}</p></div>`;
+      }
+    }
+
+    function renderProfile(data) {
+      const container = document.getElementById('profile-container');
+      
+      const header = `
+        <div style="display: flex; align-items: center; gap: 20px; padding: 30px; background: var(--yt-bg-secondary); border-radius: 12px; margin-bottom: 30px;">
+          <div class="avatar" style="width: 120px; height: 120px; border-radius: 50%; overflow: hidden; flex-shrink: 0;">
+            ${data.avatar ? `<img src="${data.avatar}" alt="${data.username}" style="width: 100%; height: 100%; object-fit: cover;">` : `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-size: 48px; font-weight: 600;">${data.username.charAt(0).toUpperCase()}</div>`}
+          </div>
+          <div style="flex: 1;">
+            <h1 style="margin: 0 0 8px 0; font-size: 32px; color: var(--yt-text);">
+              ${escapeHtml(data.username)}
+              ${data.isVerified ? '<span style="color: #065fd4; font-size: 28px;"> ✓</span>' : ''}
+            </h1>
+            <p style="margin: 0 0 15px 0; color: var(--yt-text-secondary);">@${data.discordId}</p>
+            <div style="display: flex; gap: 30px; font-size: 14px; color: var(--yt-text-secondary);">
+              <div><strong style="color: var(--yt-text); font-size: 20px;">${data.totalVideos || 0}</strong> videos</div>
+              <div><strong style="color: var(--yt-text); font-size: 20px;">${data.totalLikes || 0}</strong> likes</div>
+              <div><strong style="color: var(--yt-text); font-size: 20px;">${data.followerCount || 0}</strong> followers</div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const videosSection = `
+        <div>
+          <h2 style="color: var(--yt-text); margin-bottom: 20px;">Videos</h2>
+          <div class="video-grid" id="videos-grid">
+            ${data.videos && data.videos.length > 0 ? data.videos.map(v => `
+              <div class="video-card" onclick="window.location.href='/post.html?id=${v.id}'">
+                <div class="thumbnail-wrapper">
+                  ${v.type === 'video' ? `<video src="${v.filename}" class="thumbnail"></video>` : `<img src="${v.filename}" class="thumbnail" alt="${escapeHtml(v.title || 'Untitled')}">`}
+                  <div class="duration-badge">${v.format === 'short' ? 'Short' : 'Video'}</div>
+                </div>
+                <div class="video-info">
+                  <h3 class="video-title">${escapeHtml(v.title || 'Untitled')}</h3>
+                  <div class="video-meta">
+                    <span>${v.likes || 0} likes</span> • <span>${new Date(v.createdAt).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              </div>
+            `).join('') : '<p style="color: var(--yt-text-secondary);">No videos yet</p>'}
+          </div>
+        </div>
+      `;
+
+      container.innerHTML = header + videosSection;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    async function init() {
+      await loadUser();
+      await loadProfile();
+    }
+
+    init();
+  </script>
+</body>
+</html>

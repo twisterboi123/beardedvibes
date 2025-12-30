@@ -204,6 +204,13 @@
         const channelName = document.createElement('div');
         channelName.className = 'channel-name';
         channelName.textContent = (p.uploaderName || 'Unknown') + (p.uploaderVerified ? ' ✓' : '');
+        if (p.uploaderDiscordId) {
+          channelName.style.cursor = 'pointer';
+          channelName.onclick = (e) => {
+            e.stopPropagation();
+            window.location.href = `/profile.html?id=${p.uploaderDiscordId}`;
+          };
+        }
 
         const meta = document.createElement('div');
         meta.className = 'video-meta';
