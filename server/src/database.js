@@ -100,24 +100,50 @@ export function createDatabase(config) {
       },
 
       async insertPost(data) {
-        const res = await pool.query(
-          `INSERT INTO posts (filename, type, title, description, uploaderDiscordId, uploaderName, status, editToken, createdAt, format)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-           RETURNING id`,
-          [
-            data.filename,
-            data.type,
-            data.title,
-            data.description,
-            data.uploaderDiscordId,
-            data.uploaderName,
-            data.status,
-            data.editToken,
-            data.createdAt,
-            data.format || 'long'
-          ]
-        );
-        return { lastInsertRowid: res.rows[0].id };
+        // Try with format column first, fall back if it doesn't exist
+        try {
+          const res = await pool.query(
+            `INSERT INTO posts (filename, type, title, description, uploaderDiscordId, uploaderName, status, editToken, createdAt, format)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+             RETURNING id`,
+            [
+              data.filename,
+              data.type,
+              data.title,
+              data.description,
+              data.uploaderDiscordId,
+              data.uploaderName,
+              data.status,
+              data.editToken,
+              data.createdAt,
+              data.format || 'long'
+            ]
+          );
+          return { lastInsertRowid: res.rows[0].id };
+        } catch (err) {
+          // If format column doesn't exist, try without it
+          if (err.code === '42703' || err.message?.includes('format')) {
+            console.warn('Format column not found, inserting without it');
+            const res = await pool.query(
+              `INSERT INTO posts (filename, type, title, description, uploaderDiscordId, uploaderName, status, editToken, createdAt)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+               RETURNING id`,
+              [
+                data.filename,
+                data.type,
+                data.title,
+                data.description,
+                data.uploaderDiscordId,
+                data.uploaderName,
+                data.status,
+                data.editToken,
+                data.createdAt
+              ]
+            );
+            return { lastInsertRowid: res.rows[0].id };
+          }
+          throw err;
+        }
       },
 
       async getPost(id) {
