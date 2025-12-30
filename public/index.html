@@ -113,11 +113,24 @@
       window.location.href = '/';
     });
 
+    function setAvatar(el, url, fallback) {
+      if (!el) return;
+      el.innerHTML = '';
+      if (url) {
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = fallback || 'Avatar';
+        el.appendChild(img);
+        return;
+      }
+      el.textContent = (fallback || '?').slice(0, 2).toUpperCase();
+    }
+
     function updateAuthUi() {
       if (currentUser) {
         loginBtn.style.display = 'none';
         userMenu.style.display = 'flex';
-        userAvatar.textContent = currentUser.username.charAt(0).toUpperCase();
+        setAvatar(userAvatar, currentUser.avatar, currentUser.username || 'User');
       } else {
         loginBtn.style.display = 'block';
         userMenu.style.display = 'none';
@@ -174,7 +187,7 @@
 
         const avatar = document.createElement('div');
         avatar.className = 'channel-avatar';
-        avatar.textContent = (p.uploaderName || 'U').charAt(0).toUpperCase();
+        setAvatar(avatar, p.uploaderAvatar, p.uploaderName || 'U');
 
         const details = document.createElement('div');
         details.className = 'video-details';

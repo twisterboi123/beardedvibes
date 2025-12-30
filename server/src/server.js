@@ -169,7 +169,7 @@ app.post('/api/upload', requireAuth, (req, res) => {
 		const description = String(req.body?.description || '').trim().slice(0, 2000);
 
 		try {
-			await db.upsertUser({ discordId: uploaderDiscordId, username: uploaderName, avatar: null });
+			await db.upsertUser({ discordId: uploaderDiscordId, username: uploaderName, avatar: req.user?.avatar || null });
 		} catch (userErr) {
 			console.warn('Could not upsert uploader user', userErr?.message);
 		}
