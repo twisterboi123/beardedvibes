@@ -23,9 +23,18 @@ if (!cols.some(c => c.name === 'format')) {
 const updated = db.prepare("UPDATE posts SET format = 'photo' WHERE type = 'image'").run();
 console.log(`Updated ${updated.changes} images to format='photo'`);
 
-// Show current posts
-const posts = db.prepare('SELECT id, title, type, format FROM posts').all();
-console.log('\nCurrent posts:');
-posts.forEach(p => console.log(`  ${p.id}: "${p.title}" - type=${p.type}, format=${p.format}`));
+// Publish all draft photos
+const published = db.prepare("UPDATE posts SET status = 'published' WHERE type = 'image' AND status = 'draft'").run();
+console.log(`Published ${published.changes} draft photos`);
+
+// Show all photos
+const photos = db.prepare("SELECT id, title, type, format, uploaderDiscordId, status FROM posts WHERE type = 'image' OR format = 'photo'").all();
+console.log('\nPhotos in database:');
+photos.forEach(p => console.log(`  ID ${p.id}: type=${p.type}, format=${p.format}, status=${p.status}, uploader=${p.uploaderDiscordId}`));
+
+// Show all posts
+console.log('\nAll posts:');
+const posts = db.prepare('SELECT id, title, type, format, status FROM posts').all();
+posts.forEach(p => console.log(`  ${p.id}: "${p.title}" - type=${p.type}, format=${p.format}, status=${p.status}`));
 
 db.close();

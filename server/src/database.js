@@ -910,7 +910,7 @@ export function createDatabase(config) {
     },
 
     async getUserProfile(discordId) {
-      const user = this.getUserByDiscordId(discordId);
+      const user = await this.getUserByDiscordId(discordId);
       if (!user) return null;
 
       const videos = db.prepare(
