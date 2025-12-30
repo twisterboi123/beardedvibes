@@ -11,12 +11,76 @@ const dropzone = document.getElementById('dropzone');
 const publishCheckbox = document.getElementById('publish-now');
 const formatInput = document.getElementById('format-input');
 const formatButtons = document.querySelectorAll('#format-toggle .tab');
+const filePreview = document.getElementById('file-preview');
+const previewMedia = document.getElementById('preview-media');
+const previewName = document.getElementById('preview-name');
+const previewSize = document.getElementById('preview-size');
+const previewRemove = document.getElementById('preview-remove');
 
 homeBtn.addEventListener('click', () => window.location.href = '/');
 logoutBtn.addEventListener('click', async () => {
   await fetch('/api/auth/logout', { method: 'POST' });
   window.location.href = '/';
 });
+
+// Format file size
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Show file preview
+function showPreview(file) {
+  if (!file) {
+    hidePreview();
+    return;
+  }
+  
+  previewMedia.innerHTML = '';
+  previewName.textContent = file.name;
+  previewSize.textContent = formatFileSize(file.size);
+  
+  const url = URL.createObjectURL(file);
+  
+  if (file.type.startsWith('video/')) {
+    const video = document.createElement('video');
+    video.src = url;
+    video.controls = true;
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = 'metadata';
+    previewMedia.appendChild(video);
+  } else if (file.type.startsWith('image/')) {
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = 'Preview';
+    previewMedia.appendChild(img);
+  }
+  
+  filePreview.classList.add('active');
+  dropzone.style.display = 'none';
+}
+
+// Hide file preview
+function hidePreview() {
+  filePreview.classList.remove('active');
+  dropzone.style.display = 'block';
+  previewMedia.innerHTML = '';
+  previewName.textContent = '';
+  previewSize.textContent = '';
+}
+
+// Remove file
+function removeFile() {
+  fileInput.value = '';
+  hidePreview();
+  fileLabel.innerHTML = 'Drag & drop or click to choose<br><small style="color: var(--yt-text-secondary);">mp4, webm, jpg, png, webp</small>';
+}
+
+previewRemove.addEventListener('click', removeFile);
 
 dropzone.addEventListener('click', () => fileInput.click());
 dropzone.addEventListener('dragover', (e) => {
@@ -29,15 +93,15 @@ dropzone.addEventListener('drop', (e) => {
   dropzone.classList.remove('dragging');
   if (e.dataTransfer.files?.length) {
     fileInput.files = e.dataTransfer.files;
-    fileLabel.textContent = e.dataTransfer.files[0].name;
+    showPreview(e.dataTransfer.files[0]);
   }
 });
 
 fileInput.addEventListener('change', () => {
   if (fileInput.files?.length) {
-    fileLabel.textContent = fileInput.files[0].name;
+    showPreview(fileInput.files[0]);
   } else {
-    fileLabel.textContent = 'Drag & drop or click to choose (mp4, webm, jpg, png, webp)';
+    hidePreview();
   }
 });
 
@@ -116,7 +180,7 @@ form.addEventListener('submit', async (e) => {
     }
     setResult({ status: data.status, editLink, token: data.editToken, viewLink });
     form.reset();
-    fileLabel.textContent = 'Drag & drop or click to choose (mp4, webm, jpg, png, webp)';
+    removeFile();
   } catch (err) {
     setStatus(err.message, 'error');
   } finally {

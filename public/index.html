@@ -50,6 +50,7 @@
     </div>
   </header>
 
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
   <aside class="sidebar" id="sidebar">
     <nav class="sidebar-nav">
       <a href="#" class="nav-item active" data-feed="home">
@@ -116,6 +117,7 @@
     const userAvatar = document.getElementById('user-avatar');
     const menuToggle = document.getElementById('menu-toggle');
     const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
     const grid = document.getElementById('grid');
     const empty = document.getElementById('empty');
     const searchInput = document.getElementById('search-input');
@@ -126,9 +128,19 @@
     let isBanned = false;
     let searchTimeout = null;
 
-    menuToggle.addEventListener('click', () => {
-      sidebar.classList.toggle('collapsed');
-    });
+    // Mobile sidebar toggle
+    function toggleSidebar() {
+      sidebar.classList.toggle('open');
+      sidebarOverlay.classList.toggle('active');
+    }
+    
+    function closeSidebar() {
+      sidebar.classList.remove('open');
+      sidebarOverlay.classList.remove('active');
+    }
+    
+    menuToggle.addEventListener('click', toggleSidebar);
+    sidebarOverlay.addEventListener('click', closeSidebar);
 
     // Search functionality
     async function performSearch(query) {
@@ -581,6 +593,9 @@
           // Clear search when navigating feeds
           searchInput.value = '';
           loadFeed(feed || 'home');
+          
+          // Close sidebar on mobile
+          closeSidebar();
         });
       });
     }

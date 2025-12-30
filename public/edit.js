@@ -6,6 +6,7 @@ const publishBtn = document.getElementById('publish');
 
 function setStatus(text, type = 'info') {
   statusEl.textContent = text;
+  statusEl.style.display = 'block';
   statusEl.className = `status ${type === 'error' ? 'error' : type === 'success' ? 'success' : ''}`;
 }
 

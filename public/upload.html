@@ -78,6 +78,71 @@
       border: 1px solid rgba(76, 175, 80, 0.3);
       color: #81c784;
     }
+    
+    /* File Preview Styles */
+    .file-preview {
+      margin-top: 16px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: rgba(0, 0, 0, 0.3);
+      display: none;
+    }
+    
+    .file-preview.active {
+      display: block;
+    }
+    
+    .file-preview video,
+    .file-preview img {
+      width: 100%;
+      max-height: 300px;
+      object-fit: contain;
+      display: block;
+    }
+    
+    .file-preview-info {
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    
+    .file-preview-name {
+      font-size: 14px;
+      color: var(--yt-text);
+      font-weight: 500;
+    }
+    
+    .file-preview-size {
+      font-size: 13px;
+      color: var(--yt-text-secondary);
+    }
+    
+    .file-preview-remove {
+      background: rgba(255, 68, 68, 0.15);
+      border: 1px solid rgba(255, 68, 68, 0.3);
+      color: #ff6b6b;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    
+    .file-preview-remove:hover {
+      background: rgba(255, 68, 68, 0.25);
+    }
+    
+    @media (max-width: 480px) {
+      .file-preview video,
+      .file-preview img {
+        max-height: 200px;
+      }
+    }
   </style>
 </head>
 <body class="upload-body">
@@ -134,8 +199,18 @@
         <label class="field">
           <span>Video or image file</span>
           <div class="file-drop" id="dropzone">
-            <input type="file" id="file" name="file" accept="video/mp4,video/webm,image/jpeg,image/png,image/webp" required>
+            <input type="file" id="file" name="file" accept="video/*,image/*" required>
             <p id="file-label">Drag & drop or click to choose<br><small style="color: var(--yt-text-secondary);">mp4, webm, jpg, png, webp</small></p>
+          </div>
+          <div class="file-preview" id="file-preview">
+            <div id="preview-media"></div>
+            <div class="file-preview-info">
+              <div>
+                <div class="file-preview-name" id="preview-name"></div>
+                <div class="file-preview-size" id="preview-size"></div>
+              </div>
+              <button type="button" class="file-preview-remove" id="preview-remove">Remove</button>
+            </div>
           </div>
         </label>
 
