@@ -51,6 +51,7 @@ a{color:inherit;text-decoration:none}
   align-items:center;
   justify-content:center;
   font-weight:700;
+  cursor:pointer;
 }
 
 /* PROFILE HEADER */
@@ -214,49 +215,126 @@ a{color:inherit;text-decoration:none}
 </main>
 
 <script>
-/* MOCK DATA – replace with API later */
-const profile = {
-  username: "BeardedVibes",
-  handle: "@beardedvibes",
-  videos: 12,
-  followers: 3400,
-  likes: 22100,
-  content:[
-    {id:1,title:"My First Video",likes:1200,type:"video",thumb:"https://picsum.photos/400/225?1"},
-    {id:2,title:"Cool Short",likes:890,type:"short",thumb:"https://picsum.photos/400/225?2"},
-    {id:3,title:"Another Video",likes:300,type:"video",thumb:"https://picsum.photos/400/225?3"},
-  ]
-};
+let currentUser = null;
+let profileData = null;
 
-/* INIT */
-username.textContent = profile.username;
-handle.textContent = profile.handle;
-videos.textContent = profile.videos;
-followers.textContent = profile.followers;
-likes.textContent = profile.likes;
-pfp.textContent = profile.username[0];
-topAvatar.textContent = profile.username[0];
+/* LOAD CURRENT USER */
+async function loadUser(){
+  try{
+    const res = await fetch('/api/auth/me');
+    if(!res.ok) throw new Error('Not logged in');
+    const data = await res.json();
+    currentUser = data.user;
+    setAvatar(topAvatar, currentUser.avatar, currentUser.username);
+  }catch(e){
+    topAvatar.textContent = 'U';
+  }
+}
 
-/* RENDER */
-function render(){
+/* LOAD PROFILE */
+async function loadProfile(){
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+  const isSelf = !id || id === 'me';
+
+  if(isSelf && !currentUser){
+    username.textContent = 'Not logged in';
+    handle.textContent = 'Please sign in';
+    return;
+  }
+
+  const endpoint = isSelf ? '/api/me/profile' : `/api/user/${id}/profile`;
+
+  try{
+    const res = await fetch(endpoint);
+    if(!res.ok) throw new Error('Profile not found');
+    profileData = await res.json();
+    
+    username.textContent = profileData.username || 'User';
+    handle.textContent = '@' + (profileData.discordId || 'user');
+    videos.textContent = profileData.totalVideos || 0;
+    followers.textContent = profileData.followerCount || 0;
+    likes.textContent = profileData.totalLikes || 0;
+
+    setAvatar(pfp, profileData.avatar, profileData.username);
+
+    // Show/hide edit button
+    const isOwn = currentUser && currentUser.discordId === profileData.discordId;
+    editBtn.style.display = isOwn ? 'block' : 'none';
+
+    // Add verified badge if verified
+    if(profileData.isVerified){
+      const badge = document.createElement('span');
+      badge.style.cssText = 'background:#3ea6ff;color:#000;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;margin-left:8px';
+      badge.textContent = '✓ VERIFIED';
+      username.appendChild(badge);
+    }
+
+    renderContent();
+  }catch(e){
+    username.textContent = 'Error loading profile';
+    console.error(e);
+  }
+}
+
+/* SET AVATAR */
+function setAvatar(el, url, name){
+  el.innerHTML = '';
+  if(url){
+    const img = document.createElement('img');
+    img.src = url;
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.objectFit = 'cover';
+    el.appendChild(img);
+  }else{
+    el.textContent = (name || 'U').charAt(0).toUpperCase();
+  }
+}
+
+/* RENDER CONTENT */
+function renderContent(){
   videosTab.innerHTML = "";
   shortsTab.innerHTML = "";
 
-  profile.content.forEach(v=>{
-    const card = document.createElement("div");
-    card.className = "card";
-    card.innerHTML = `
-      <div class="thumb">
-        <img src="${v.thumb}">
-      </div>
-      <div class="title">${v.title}</div>
-      <div class="meta">${v.likes} likes</div>
-    `;
-    (v.type === "short" ? shortsTab : videosTab).appendChild(card);
+  if(!profileData || !profileData.videos) return;
+
+  const videoList = profileData.videos.filter(v => v.format !== 'short');
+  const shortList = profileData.videos.filter(v => v.format === 'short');
+
+  videoList.forEach(v=>{
+    const card = createCard(v);
+    videosTab.appendChild(card);
   });
+
+  shortList.forEach(v=>{
+    const card = createCard(v);
+    shortsTab.appendChild(card);
+  });
+
+  if(videoList.length === 0) videosTab.innerHTML = '<p style="color:var(--text2)">No videos yet</p>';
+  if(shortList.length === 0) shortsTab.innerHTML = '<p style="color:var(--text2)">No shorts yet</p>';
 }
 
-render();
+function createCard(v){
+  const card = document.createElement("div");
+  card.className = "card";
+  card.onclick = () => window.location.href = `/post/${v.id}`;
+  card.innerHTML = `
+    <div class="thumb">
+      ${v.type === 'video' ? `<video src="${v.fileUrl || v.filename}"></video>` : `<img src="${v.fileUrl || v.filename}">`}
+    </div>
+    <div class="title">${escapeHtml(v.title || 'Untitled')}</div>
+    <div class="meta">${v.likes || 0} likes • ${new Date(v.createdAt).toLocaleDateString()}</div>
+  `;
+  return card;
+}
+
+function escapeHtml(text){
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
 
 /* TABS */
 document.querySelectorAll(".tab").forEach(tab=>{
@@ -267,6 +345,25 @@ document.querySelectorAll(".tab").forEach(tab=>{
     shortsTab.style.display = tab.dataset.tab==="shorts"?"grid":"none";
   };
 });
+
+/* EDIT BUTTON */
+editBtn.onclick = () => {
+  window.location.href = '/profile-edit.html';
+};
+
+/* TOP AVATAR CLICK */
+topAvatar.onclick = () => {
+  if(currentUser) window.location.href = '/profile.html?id=me';
+  else window.location.href = '/api/auth/login';
+};
+
+/* INIT */
+async function init(){
+  await loadUser();
+  await loadProfile();
+}
+
+init();
 </script>
 
 </body>
