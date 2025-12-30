@@ -7,9 +7,11 @@ const publishedAtEl = document.getElementById('published-at');
 const uploaderTag = document.getElementById('uploader-tag');
 const uploaderNameEl = document.getElementById('uploader-name');
 const uploaderAvatarEl = document.getElementById('uploader-avatar');
+const followerCountEl = document.getElementById('follower-count');
 const likeBtn = document.getElementById('like-btn');
 const likeCount = document.getElementById('like-count');
 const watchBtn = document.getElementById('watch-btn');
+const followBtn = document.getElementById('follow-btn');
 const commentsList = document.getElementById('comments-list');
 const commentForm = document.getElementById('comment-form');
 const commentText = document.getElementById('comment-text');
@@ -31,7 +33,9 @@ const state = {
   user: null,
   postId: null,
   liked: false,
-  watchLater: false
+  watchLater: false,
+  following: false,
+  uploaderDiscordId: null
 };
 
 function setAvatar(el, url, fallback) {
@@ -165,6 +169,25 @@ async function recordView(id) {
   if (!response.ok) return;
 }
 
+async function fetchFollowStatus(discordId) {
+  const res = await fetch(`/api/user/${discordId}/follow`);
+  if (!res.ok) throw new Error('Unable to load follow status');
+  return res.json();
+}
+
+async function toggleFollow(discordId, follow, meta = {}) {
+  const res = await fetch(`/api/user/${discordId}/follow`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ follow, username: meta.username, avatar: meta.avatar })
+  });
+  if (!res.ok) {
+    const msg = (await res.json().catch(() => ({}))).error || 'Unable to update follow';
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
 async function addComment(id, text) {
   const response = await fetch(`/api/post/${id}/comment`, {
     method: 'POST',
@@ -196,6 +219,17 @@ function updateAuthUi() {
     commentText.disabled = true;
     commentSubmit.disabled = true;
     commentHint.textContent = 'Log in with Discord to comment.';
+  }
+}
+
+function updateFollowUi(following, followerCount) {
+  state.following = following;
+  if (followBtn) {
+    followBtn.classList.toggle('active', following);
+    followBtn.textContent = following ? 'Following' : 'Follow';
+  }
+  if (followerCountEl && typeof followerCount === 'number') {
+    followerCountEl.textContent = `${followerCount} follower${followerCount === 1 ? '' : 's'}`;
   }
 }
 
@@ -267,6 +301,7 @@ async function init() {
     uploaderTag.textContent = data.uploaderDiscordId ? `@${data.uploaderDiscordId}` : 'Uploader unknown';
     uploaderNameEl.textContent = uploaderName;
     setAvatar(uploaderAvatarEl, data.uploaderAvatar, uploaderName);
+    state.uploaderDiscordId = data.uploaderDiscordId || null;
     likeCount.textContent = data.likes ?? 0;
     updateLikeButton(Boolean(data.liked));
     // watch later initial state (optional; not provided by API yet)
@@ -278,6 +313,16 @@ async function init() {
     } catch (_e) {}
     renderPreview(data);
     setStatus('Published and ready to watch.', 'success');
+
+    // Follow status
+    if (state.uploaderDiscordId) {
+      try {
+        const followData = await fetchFollowStatus(state.uploaderDiscordId);
+        updateFollowUi(followData.following, followData.followerCount);
+      } catch (_err) {
+        updateFollowUi(false, 0);
+      }
+    }
 
     const initialComments = await fetchComments(id);
     renderComments(initialComments);
@@ -314,6 +359,26 @@ async function init() {
         setStatus(err.message, 'error');
       } finally {
         watchBtn.disabled = false;
+      }
+    });
+
+    followBtn.addEventListener('click', async () => {
+      if (!state.user) {
+        window.location.href = '/api/auth/login';
+        return;
+      }
+      if (!state.uploaderDiscordId) return;
+      followBtn.disabled = true;
+      try {
+        const result = await toggleFollow(state.uploaderDiscordId, !state.following, {
+          username: uploaderName,
+          avatar: data.uploaderAvatar
+        });
+        updateFollowUi(result.following, result.followerCount);
+      } catch (err) {
+        setStatus(err.message, 'error');
+      } finally {
+        followBtn.disabled = false;
       }
     });
 

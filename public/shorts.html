@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BeardedVibes Shorts</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="shorts-body">
+  <header class="shorts-header">
+    <div class="brand">BeardedVibes • Shorts</div>
+    <div class="shorts-actions">
+      <a class="ghost" href="/">Home</a>
+      <a class="ghost" href="/upload">Upload</a>
+      <button id="shorts-login" class="auth-btn">Sign in</button>
+      <div id="shorts-user" class="user-menu" style="display:none;">
+        <span id="shorts-avatar" class="user-avatar"></span>
+        <button id="shorts-logout" class="ghost-btn">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="shorts-shell">
+    <div class="shorts-feed" id="shorts-feed"></div>
+    <div id="shorts-empty" class="empty-state" style="display:none;">No shorts yet. Upload a short-form video to get started.</div>
+  </main>
+
+  <script>
+    const feedEl = document.getElementById('shorts-feed');
+    const emptyEl = document.getElementById('shorts-empty');
+    const loginBtn = document.getElementById('shorts-login');
+    const logoutBtn = document.getElementById('shorts-logout');
+    const userMenu = document.getElementById('shorts-user');
+    const userAvatar = document.getElementById('shorts-avatar');
+    let currentUser = null;
+
+    loginBtn.addEventListener('click', () => window.location.href = '/api/auth/login');
+    logoutBtn.addEventListener('click', async () => { await fetch('/api/auth/logout', { method: 'POST' }); window.location.href = '/shorts'; });
+
+    function setAvatar(el, url, fallback) {
+      if (!el) return;
+      el.innerHTML = '';
+      if (url) {
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = fallback || 'Avatar';
+        el.appendChild(img);
+      } else {
+        el.textContent = (fallback || '?').slice(0, 2).toUpperCase();
+      }
+    }
+
+    function updateAuthUi() {
+      if (currentUser) {
+        loginBtn.style.display = 'none';
+        userMenu.style.display = 'flex';
+        setAvatar(userAvatar, currentUser.avatar, currentUser.username || 'User');
+      } else {
+        loginBtn.style.display = 'inline-flex';
+        userMenu.style.display = 'none';
+      }
+    }
+
+    async function loadUser() {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (!res.ok) throw new Error('no session');
+        const data = await res.json();
+        currentUser = data.user;
+      } catch (_err) {
+        currentUser = null;
+      }
+      updateAuthUi();
+    }
+
+    function renderShort(post) {
+      const card = document.createElement('article');
+      card.className = 'short-card';
+
+      const video = document.createElement('video');
+      video.className = 'short-video';
+      video.src = post.fileUrl;
+      video.muted = true;
+      video.loop = true;
+      video.playsInline = true;
+      video.preload = 'metadata';
+
+      const overlay = document.createElement('div');
+      overlay.className = 'short-overlay';
+
+      const meta = document.createElement('div');
+      meta.className = 'short-meta';
+
+      const uploaderRow = document.createElement('div');
+      uploaderRow.className = 'short-uploader';
+      const avatar = document.createElement('div');
+      avatar.className = 'avatar';
+      setAvatar(avatar, post.uploaderAvatar, post.uploaderName || 'U');
+      const uploaderInfo = document.createElement('div');
+      uploaderInfo.className = 'uploader-info';
+      const name = document.createElement('div');
+      name.className = 'name';
+      name.textContent = post.uploaderName || 'Unknown';
+      const tag = document.createElement('div');
+      tag.className = 'tag';
+      tag.textContent = post.uploaderDiscordId ? `@${post.uploaderDiscordId}` : '';
+      uploaderInfo.append(name, tag);
+      uploaderRow.append(avatar, uploaderInfo);
+
+      const title = document.createElement('h2');
+      title.textContent = post.title || 'Untitled';
+
+      const actions = document.createElement('div');
+      actions.className = 'short-actions';
+      const openBtn = document.createElement('button');
+      openBtn.className = 'ghost';
+      openBtn.textContent = 'Open video';
+      openBtn.addEventListener('click', (e) => { e.stopPropagation(); window.location.href = `/post/${post.id}`; });
+      const likeCount = document.createElement('span');
+      likeCount.className = 'like-count';
+      likeCount.textContent = `${post.likes || 0} likes`;
+      actions.append(openBtn, likeCount);
+
+      meta.append(uploaderRow, title, actions);
+      overlay.append(meta);
+
+      card.append(video, overlay);
+      feedEl.appendChild(card);
+      return video;
+    }
+
+    async function loadShorts() {
+      feedEl.innerHTML = '';
+      emptyEl.style.display = 'none';
+      const res = await fetch('/api/posts');
+      if (!res.ok) {
+        emptyEl.textContent = '⚠️ Unable to load shorts right now.';
+        emptyEl.style.display = 'flex';
+        return;
+      }
+      const data = await res.json();
+      const shorts = (data.posts || []).filter((p) => (p.format || 'long') === 'short');
+      if (!shorts.length) {
+        emptyEl.style.display = 'flex';
+        return;
+      }
+      const videos = shorts.map(renderShort);
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          const vid = entry.target;
+          if (entry.isIntersecting) {
+            vid.play().catch(() => {});
+          } else {
+            vid.pause();
+          }
+        });
+      }, { threshold: 0.6 });
+
+      videos.forEach((v) => observer.observe(v));
+    }
+
+    (async function bootstrap() {
+      await loadUser();
+      await loadShorts();
+    })();
+  </script>
+</body>
+</html>

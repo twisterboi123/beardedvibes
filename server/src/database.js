@@ -80,6 +80,15 @@ export function createDatabase(config) {
             UNIQUE(postId, userId)
           );
         `);
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS follows (
+            id SERIAL PRIMARY KEY,
+            followerId INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            followingDiscordId TEXT NOT NULL,
+            createdAt TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            UNIQUE(followerId, followingDiscordId)
+          );
+        `);
         await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS uploaderName TEXT DEFAULT ''`);
         await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS format TEXT DEFAULT 'long'`);
         await pool.query(`ALTER TABLE comments ADD COLUMN IF NOT EXISTS userId INTEGER REFERENCES users(id)`);
@@ -87,6 +96,7 @@ export function createDatabase(config) {
         await pool.query('CREATE INDEX IF NOT EXISTS idx_likes_postId ON likes(postId)');
         await pool.query('CREATE INDEX IF NOT EXISTS idx_history_user ON history(userId, viewedAt DESC)');
         await pool.query('CREATE INDEX IF NOT EXISTS idx_watchlist_user ON watchlist(userId, addedAt DESC)');
+        await pool.query('CREATE INDEX IF NOT EXISTS idx_follows_target ON follows(followingDiscordId)');
       },
 
       async upsertUser({ discordId, username, avatar }) {
@@ -107,6 +117,17 @@ export function createDatabase(config) {
            WHERE id = $1
            LIMIT 1`,
           [id]
+        );
+        return res.rows[0];
+      },
+
+      async getUserByDiscordId(discordId) {
+        const res = await pool.query(
+          `SELECT id, discordId AS "discordId", username, avatar
+           FROM users
+           WHERE discordId = $1
+           LIMIT 1`,
+          [discordId]
         );
         return res.rows[0];
       },
@@ -285,6 +306,30 @@ export function createDatabase(config) {
       async hasWatchLater(postId, userId) {
         const res = await pool.query('SELECT 1 FROM watchlist WHERE postId = $1 AND userId = $2 LIMIT 1', [postId, userId]);
         return Boolean(res.rows[0]);
+      },
+
+      async setFollow(followerId, followingDiscordId, follow) {
+        if (follow) {
+          await pool.query(
+            `INSERT INTO follows (followerId, followingDiscordId)
+             VALUES ($1, $2)
+             ON CONFLICT (followerId, followingDiscordId) DO NOTHING`,
+            [followerId, followingDiscordId]
+          );
+          return true;
+        }
+        await pool.query('DELETE FROM follows WHERE followerId = $1 AND followingDiscordId = $2', [followerId, followingDiscordId]);
+        return false;
+      },
+
+      async hasFollow(followerId, followingDiscordId) {
+        const res = await pool.query('SELECT 1 FROM follows WHERE followerId = $1 AND followingDiscordId = $2 LIMIT 1', [followerId, followingDiscordId]);
+        return Boolean(res.rows[0]);
+      },
+
+      async followerCount(followingDiscordId) {
+        const res = await pool.query('SELECT COUNT(*)::INT AS count FROM follows WHERE followingDiscordId = $1', [followingDiscordId]);
+        return res.rows[0]?.count || 0;
       }
     };
   }
@@ -362,10 +407,21 @@ export function createDatabase(config) {
       FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
     );
   `);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS follows (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      followerId INTEGER NOT NULL,
+      followingDiscordId TEXT NOT NULL,
+      createdAt TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(followerId, followingDiscordId),
+      FOREIGN KEY (followerId) REFERENCES users(id) ON DELETE CASCADE
+    );
+  `);
   db.exec('CREATE INDEX IF NOT EXISTS idx_comments_postId ON comments(postId)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_likes_postId ON likes(postId)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_history_user ON history(userId, viewedAt)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_watchlist_user ON watchlist(userId, addedAt)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_follows_target ON follows(followingDiscordId)');
 
   const postColumns = db.prepare("PRAGMA table_info(posts)").all();
   const commentColumns = db.prepare("PRAGMA table_info(comments)").all();
@@ -470,6 +526,10 @@ export function createDatabase(config) {
     WHERE w.userId = ? AND p.status = 'published'
     ORDER BY w.addedAt DESC
   `);
+  const hasFollowStmt = db.prepare('SELECT 1 FROM follows WHERE followerId = ? AND followingDiscordId = ?');
+  const followInsertStmt = db.prepare('INSERT OR IGNORE INTO follows (followerId, followingDiscordId) VALUES (?, ?)');
+  const followDeleteStmt = db.prepare('DELETE FROM follows WHERE followerId = ? AND followingDiscordId = ?');
+  const followerCountStmt = db.prepare('SELECT COUNT(*) AS count FROM follows WHERE followingDiscordId = ?');
 
   return {
     async init() {},
@@ -480,6 +540,10 @@ export function createDatabase(config) {
 
     async getUserById(id) {
       return db.prepare('SELECT id, discordId, username, avatar FROM users WHERE id = ? LIMIT 1').get(id);
+    },
+
+    async getUserByDiscordId(discordId) {
+      return db.prepare('SELECT id, discordId, username, avatar FROM users WHERE discordId = ? LIMIT 1').get(discordId);
     },
 
     insertPost: (data) => Promise.resolve(insertPostStmt.run(data)),
@@ -540,6 +604,25 @@ export function createDatabase(config) {
 
     async listWatchlist(userId) {
       return listWatchlistStmt.all(userId);
+    },
+
+    async setFollow(followerId, followingDiscordId, follow) {
+      if (follow) {
+        followInsertStmt.run(followerId, followingDiscordId);
+        return true;
+      }
+      followDeleteStmt.run(followerId, followingDiscordId);
+      return false;
+    },
+
+    async hasFollow(followerId, followingDiscordId) {
+      const row = hasFollowStmt.get(followerId, followingDiscordId);
+      return Boolean(row);
+    },
+
+    async followerCount(followingDiscordId) {
+      const row = followerCountStmt.get(followingDiscordId);
+      return row?.count || 0;
     }
   };
 }

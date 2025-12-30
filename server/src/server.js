@@ -388,6 +388,41 @@ app.post('/api/post/:id/watchlater', requireAuth, async (req, res) => {
 	return res.json({ watchLater: nowHas });
 });
 
+// Follow endpoints
+app.get('/api/user/:discordId/follow', async (req, res) => {
+	const targetDiscordId = req.params.discordId;
+	if (!targetDiscordId) return res.status(400).json({ error: 'Invalid user' });
+	const followerCount = await db.followerCount(targetDiscordId);
+	const following = req.user ? await db.hasFollow(req.user.id, targetDiscordId) : false;
+	return res.json({ following, followerCount });
+});
+
+app.post('/api/user/:discordId/follow', requireAuth, async (req, res) => {
+	const targetDiscordId = req.params.discordId;
+	if (!targetDiscordId) return res.status(400).json({ error: 'Invalid user' });
+	if (req.user.discordId === targetDiscordId) return res.status(400).json({ error: "You can't follow yourself" });
+
+	// Ensure the target exists in users table for follower counts/joins
+	if (typeof db.getUserByDiscordId === 'function') {
+		const existing = await db.getUserByDiscordId(targetDiscordId);
+		if (!existing) {
+			const safeName = String(req.body?.username || 'Unknown').slice(0, 80) || 'Unknown';
+			const safeAvatar = req.body?.avatar || null;
+			try {
+				await db.upsertUser({ discordId: targetDiscordId, username: safeName, avatar: safeAvatar });
+			} catch (_err) {
+				// ignore
+			}
+		}
+	}
+
+	const current = await db.hasFollow(req.user.id, targetDiscordId);
+	const desired = typeof req.body?.follow === 'boolean' ? req.body.follow : !current;
+	const following = await db.setFollow(req.user.id, targetDiscordId, desired);
+	const followerCount = await db.followerCount(targetDiscordId);
+	return res.json({ following, followerCount });
+});
+
 // Comments: list
 app.get('/api/post/:id/comments', async (req, res) => {
 	const id = Number(req.params.id);
@@ -561,6 +596,10 @@ app.get('/edit/:id', (_req, res) => {
 
 app.get('/post/:id', (_req, res) => {
 	res.sendFile(path.resolve(publicDir, 'post.html'));
+});
+
+app.get('/shorts', (_req, res) => {
+	res.sendFile(path.resolve(publicDir, 'shorts.html'));
 });
 
 app.get('/upload', (_req, res) => {
