@@ -13,7 +13,7 @@ export function createDatabase(config) {
       LEFT JOIN (
         SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
       ) lc ON lc.postId = p.id
-      LEFT JOIN users u ON u."discordId" = p."uploaderDiscordId"
+      LEFT JOIN users u ON u.discordid = p.uploaderdiscordid
       WHERE p.id = $1
     `;
 
@@ -143,7 +143,7 @@ export function createDatabase(config) {
           LEFT JOIN (
             SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
           ) lc ON lc.postId = p.id
-          LEFT JOIN users u ON u."discordId" = p."uploaderDiscordId"
+          LEFT JOIN users u ON u.discordid = p.uploaderdiscordid
           WHERE p.status = 'published'
           ORDER BY p.id DESC
         `);
@@ -157,7 +157,7 @@ export function createDatabase(config) {
           LEFT JOIN (
             SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
           ) lc ON lc.postId = p.id
-          LEFT JOIN users u ON u."discordId" = p."uploaderDiscordId"
+          LEFT JOIN users u ON u.discordid = p.uploaderdiscordid
           WHERE p.status = 'published'
           ORDER BY lc.count DESC NULLS LAST, p.createdAt DESC
           LIMIT 100
@@ -173,7 +173,7 @@ export function createDatabase(config) {
           LEFT JOIN (
             SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
           ) lc ON lc.postId = p.id
-          LEFT JOIN users u ON u."discordId" = p."uploaderDiscordId"
+          LEFT JOIN users u ON u.discordid = p.uploaderdiscordid
           WHERE l.userId = $1 AND p.status = 'published'
           ORDER BY l.createdAt DESC
         `, [userId]);
@@ -188,7 +188,7 @@ export function createDatabase(config) {
           LEFT JOIN (
             SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
           ) lc ON lc.postId = p.id
-          LEFT JOIN users u ON u."discordId" = p."uploaderDiscordId"
+          LEFT JOIN users u ON u.discordid = p.uploaderdiscordid
           WHERE h.userId = $1 AND p.status = 'published'
           ORDER BY h.viewedAt DESC
         `, [userId]);
@@ -203,7 +203,7 @@ export function createDatabase(config) {
           LEFT JOIN (
             SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
           ) lc ON lc.postId = p.id
-          LEFT JOIN users u ON u."discordId" = p."uploaderDiscordId"
+          LEFT JOIN users u ON u.discordid = p.uploaderdiscordid
           WHERE w.userId = $1 AND p.status = 'published'
           ORDER BY w.addedAt DESC
         `, [userId]);
