@@ -472,11 +472,16 @@
 			container.innerHTML = state.users.map(user => `
 				<div class="admin-item">
 					<div class="admin-item-info">
-						<div class="admin-item-title">${escapeHtml(user.username)}</div>
+						<div class="admin-item-title">
+							${escapeHtml(user.username)}
+							${user.isOwner ? '<span style="background: linear-gradient(135deg, #ffd700, #ff8c00); color: #000; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 6px;">👑 Owner</span>' : ''}
+							${user.isStaff ? '<span style="background: linear-gradient(135deg, #9c27b0, #673ab7); color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 6px;">🛡️ Staff</span>' : ''}
+							${user.isVerified ? '<span style="background: linear-gradient(135deg, #1d9bf0, #3ea6ff); color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 6px;">✓ Verified</span>' : ''}
+						</div>
 						<div class="admin-item-meta">
 							ID: ${user.discordId} •
 							${user.isBanned ? '🚫 Banned' : '✓ Active'} •
-							${user.isVerified ? '✓ Verified' : 'Unverified'}
+							${user.isAdmin ? '⚡ Admin' : 'User'}
 						</div>
 					</div>
 					<div class="admin-item-actions">
@@ -487,7 +492,15 @@
 						}
 						${user.isVerified
 							? `<button class="admin-btn warning" onclick="toggleVerify('${user.discordId}', false)">Unverify</button>`
-							: `<button class="admin-btn success" onclick="toggleVerify('${user.discordId}', true)">Verify</button>`
+							: `<button class="admin-btn success" onclick="toggleVerify('${user.discordId}', true)">✓ Verify</button>`
+						}
+						${user.isStaff
+							? `<button class="admin-btn" style="background: rgba(156, 39, 176, 0.3); color: #ce93d8;" onclick="toggleStaff('${user.discordId}', false)">Remove Staff</button>`
+							: `<button class="admin-btn" style="background: rgba(156, 39, 176, 0.15); color: #ce93d8;" onclick="toggleStaff('${user.discordId}', true)">🛡️ Staff</button>`
+						}
+						${user.isOwner
+							? `<button class="admin-btn" style="background: rgba(255, 215, 0, 0.3); color: #ffd700;" onclick="toggleOwner('${user.discordId}', false)">Remove Owner</button>`
+							: `<button class="admin-btn" style="background: rgba(255, 215, 0, 0.15); color: #ffd700;" onclick="toggleOwner('${user.discordId}', true)">👑 Owner</button>`
 						}
 						${user.isAdmin
 							? `<button class="admin-btn warning" onclick="toggleAdmin('${user.discordId}', false)">Remove Admin</button>`
@@ -566,6 +579,63 @@
 				if (res.ok) {
 					const user = state.users.find(u => u.discordId === discordId);
 					if (user) user.isVerified = verified;
+					renderUsers();
+					showSuccess(data.message);
+				} else {
+					showError(data.error || 'Failed to update user');
+				}
+			} catch (err) {
+				showError('Error: ' + err.message);
+			}
+		}
+
+		// Staff badge toggle
+		async function toggleStaff(discordId, staff) {
+			const action = staff ? 'give Staff badge to' : 'remove Staff badge from';
+			if (!confirm(`Are you sure you want to ${action} this user?`)) return;
+
+			try {
+				const res = await fetch(`/api/admin/user/${discordId}/staff`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ staff })
+				});
+				const data = await res.json();
+
+				if (res.ok) {
+					const user = state.users.find(u => u.discordId === discordId);
+					if (user) user.isStaff = staff;
+					renderUsers();
+					showSuccess(data.message);
+				} else {
+					showError(data.error || 'Failed to update user');
+				}
+			} catch (err) {
+				showError('Error: ' + err.message);
+			}
+		}
+
+		// Owner badge toggle
+		async function toggleOwner(discordId, owner) {
+			const action = owner ? 'give Owner badge to' : 'remove Owner badge from';
+			
+			if (owner) {
+				if (!confirm(`⚠️ WARNING: You are about to give this user the OWNER badge.\n\nThis is a cosmetic badge but signifies ownership of the platform.\n\nAre you sure?`)) return;
+			} else {
+				if (!confirm(`Are you sure you want to ${action} this user?`)) return;
+			}
+
+			try {
+				const res = await fetch(`/api/admin/user/${discordId}/owner`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ owner })
+				});
+				const data = await res.json();
+
+				if (res.ok) {
+					const user = state.users.find(u => u.discordId === discordId);
+					if (user) user.isOwner = owner;
 					renderUsers();
 					showSuccess(data.message);
 				} else {

@@ -1083,6 +1083,24 @@ app.post('/api/admin/user/:discordId/admin', requireAdmin, async (req, res) => {
 	return res.json({ success: true, message: `User ${admin ? 'promoted to' : 'removed from'} admin` });
 });
 
+app.post('/api/admin/user/:discordId/staff', requireAdmin, async (req, res) => {
+	const discordId = req.params.discordId;
+	if (!discordId) return res.status(400).json({ error: 'Invalid user' });
+
+	const { staff } = req.body;
+	await db.setStaff(discordId, Boolean(staff));
+	return res.json({ success: true, message: `User ${staff ? 'given' : 'removed'} Staff badge` });
+});
+
+app.post('/api/admin/user/:discordId/owner', requireAdmin, async (req, res) => {
+	const discordId = req.params.discordId;
+	if (!discordId) return res.status(400).json({ error: 'Invalid user' });
+
+	const { owner } = req.body;
+	await db.setOwner(discordId, Boolean(owner));
+	return res.json({ success: true, message: `User ${owner ? 'given' : 'removed'} Owner badge` });
+});
+
 // Setup endpoint (use SETUP_SECRET from .env to promote admins)
 app.post('/api/setup/promote-admin', async (req, res) => {
 	const setupSecret = process.env.SETUP_SECRET;

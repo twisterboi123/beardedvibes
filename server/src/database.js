@@ -417,6 +417,16 @@ export function createDatabase(config) {
         return true;
       },
 
+      async setStaff(discordId, staff) {
+        await pool.query('UPDATE users SET isStaff = $1 WHERE discordId = $2', [staff, discordId]);
+        return true;
+      },
+
+      async setOwner(discordId, owner) {
+        await pool.query('UPDATE users SET isOwner = $1 WHERE discordId = $2', [owner, discordId]);
+        return true;
+      },
+
       async getUserByDiscordId(discordId) {
         const res = await pool.query('SELECT id, discordId AS "discordId", username, avatar, isAdmin AS "isAdmin", isBanned AS "isBanned", isVerified AS "isVerified", COALESCE(isStaff, false) AS "isStaff", COALESCE(isOwner, false) AS "isOwner", bio, banner, profileColor AS "profileColor" FROM users WHERE discordId = $1 LIMIT 1', [discordId]);
         return res.rows[0] || null;
@@ -878,6 +888,16 @@ export function createDatabase(config) {
 
     async setAdmin(discordId, admin) {
       db.prepare('UPDATE users SET isAdmin = ? WHERE discordId = ?').run(admin ? 1 : 0, discordId);
+      return true;
+    },
+
+    async setStaff(discordId, staff) {
+      db.prepare('UPDATE users SET isStaff = ? WHERE discordId = ?').run(staff ? 1 : 0, discordId);
+      return true;
+    },
+
+    async setOwner(discordId, owner) {
+      db.prepare('UPDATE users SET isOwner = ? WHERE discordId = ?').run(owner ? 1 : 0, discordId);
       return true;
     },
 
