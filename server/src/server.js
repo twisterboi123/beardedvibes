@@ -29,6 +29,10 @@ const isProd = process.env.NODE_ENV === 'production';
 const discordClientId = process.env.DISCORD_CLIENT_ID;
 const discordClientSecret = process.env.DISCORD_CLIENT_SECRET;
 const discordRedirectUri = (process.env.DISCORD_REDIRECT_URI || `${frontendBase}/api/auth/callback`).replace(/\/$/, '');
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+const googleRedirectUri = (process.env.GOOGLE_REDIRECT_URI || `${frontendBase}/api/auth/google/callback`).replace(/\/$/, '');
+const adminIds = process.env.ADMIN_IDS ? process.env.ADMIN_IDS.split(',').map((id) => id.trim()).filter(Boolean) : [];
 const sessionCookieOptions = {
 	httpOnly: true,
 	sameSite: 'lax',
@@ -84,6 +88,17 @@ const upload = multer({
 	}
 });
 
+const avatarUpload = multer({
+	storage: multerStorage,
+	limits: { fileSize: 5 * 1024 * 1024 },
+	fileFilter: (_req, file, cb) => {
+		if (!file.mimetype.startsWith('image/')) {
+			return cb(new Error('Avatar must be an image'));
+		}
+		cb(null, true);
+	}
+});
+
 // Core middleware and static hosting
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -94,7 +109,8 @@ app.use(express.static(publicDir));
 function signSession(user) {
 	const discordId = user.discordId ?? user.discordid ?? user.discord_id;
 	const username = user.username ?? user.name ?? 'Unknown';
-	const avatar = user.avatar ?? user.avatarUrl ?? user.picture ?? null;
+	const avatarRaw = user.avatar ?? user.avatarUrl ?? user.picture ?? null;
+	const avatar = resolveAssetUrl(avatarRaw);
 	const isAdmin = user.isAdmin ?? user.isadmin ?? false;
 	return jwt.sign({ id: user.id, discordId, username, avatar, isAdmin }, jwtSecret, { expiresIn: '30d' });
 }
@@ -104,7 +120,8 @@ function normalizeUser(user) {
 	const discordId = user.discordId ?? user.discordid ?? user.discord_id;
 	if (!discordId) return undefined;
 	const username = user.username ?? user.name ?? 'Unknown';
-	const avatar = user.avatar ?? user.avatarUrl ?? user.picture ?? null;
+	const avatarRaw = user.avatar ?? user.avatarUrl ?? user.picture ?? null;
+	const avatar = resolveAssetUrl(avatarRaw);
 	const isAdmin = user.isAdmin ?? user.isadmin ?? false;
 	return { id: user.id, discordId, username, avatar, isAdmin };
 }
@@ -152,6 +169,16 @@ function detectType(mimetype) {
 	if (mimetype.startsWith('image/')) return 'image';
 	if (mimetype.startsWith('video/')) return 'video';
 	return 'unknown';
+}
+
+function resolveAssetUrl(value) {
+	if (!value) return null;
+	if (/^https?:\/\//i.test(value)) return value;
+	try {
+		return storage.getUrl(value);
+	} catch (_err) {
+		return value;
+	}
 }
 
 // Upload endpoint: accepts one validated file and records it as a draft (auth required)
@@ -397,6 +424,76 @@ app.post('/api/post/:id/watchlater', requireAuth, async (req, res) => {
 	return res.json({ watchLater: nowHas });
 });
 
+function buildProfileResponse(profile) {
+	if (!profile) return null;
+	const avatar = resolveAssetUrl(profile.avatar);
+	const videos = Array.isArray(profile.videos)
+		? profile.videos.map((v) => ({
+			...v,
+			fileUrl: resolveAssetUrl(v.filename)
+		}))
+		: [];
+
+	return {
+		...profile,
+		avatar,
+		videos
+	};
+}
+
+app.get('/api/me/profile', requireAuth, async (req, res) => {
+	try {
+		const profile = await db.getUserProfile(req.user.discordId);
+		if (!profile) return res.status(404).json({ error: 'User not found' });
+		return res.json(buildProfileResponse(profile));
+	} catch (err) {
+		console.error('Self profile fetch error:', err);
+		return res.status(500).json({ error: 'Failed to load profile' });
+	}
+});
+
+app.patch('/api/me/profile', requireAuth, (req, res) => {
+	avatarUpload.single('avatar')(req, res, async (err) => {
+		if (err) {
+			return res.status(400).json({ error: err.message || 'Invalid upload' });
+		}
+
+		const requestedName = String(req.body?.username || '').trim().slice(0, 80);
+		const avatarUrlFromBody = req.body?.avatarUrl ? String(req.body.avatarUrl).trim() : null;
+
+		let avatarUrl = avatarUrlFromBody || null;
+
+		if (req.file) {
+			try {
+				avatarUrl = await storage.upload(req.file.path, req.file.filename);
+			} catch (uploadErr) {
+				console.error('Avatar upload failed:', uploadErr);
+				return res.status(500).json({ error: 'Failed to save avatar' });
+			}
+		}
+
+		if (!requestedName && !avatarUrl) {
+			return res.status(400).json({ error: 'Nothing to update' });
+		}
+
+		try {
+			const updated = await db.updateUserProfile(req.user.discordId, {
+				username: requestedName || undefined,
+				avatar: avatarUrl || undefined
+			});
+
+			if (!updated) return res.status(404).json({ error: 'User not found' });
+
+			const session = signSession(updated);
+			res.cookie('session', session, sessionCookieOptions);
+			return res.json({ user: normalizeUser(updated), avatar: resolveAssetUrl(updated.avatar) });
+		} catch (updateErr) {
+			console.error('Profile update error:', updateErr);
+			return res.status(500).json({ error: 'Failed to update profile' });
+		}
+	});
+});
+
 // Follow endpoints
 app.get('/api/user/:discordId/profile', async (req, res) => {
 	const discordId = req.params.discordId;
@@ -404,7 +501,7 @@ app.get('/api/user/:discordId/profile', async (req, res) => {
 	try {
 		const profile = await db.getUserProfile(discordId);
 		if (!profile) return res.status(404).json({ error: 'User not found' });
-		return res.json(profile);
+		return res.json(buildProfileResponse(profile));
 	} catch (err) {
 		console.error('Profile fetch error:', err);
 		return res.status(500).json({ error: 'Failed to load profile' });
@@ -559,6 +656,49 @@ DISCORD_CLIENT_SECRET=your_client_secret</pre>
 	return res.redirect(`https://discord.com/oauth2/authorize?${params.toString()}`);
 });
 
+app.get('/api/auth/google', (req, res) => {
+	if (!googleClientId || !googleClientSecret) {
+		if (req.headers.accept?.includes('application/json')) {
+			return res.status(500).json({
+				error: 'Google OAuth not configured',
+				message: 'Please add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to your .env file'
+			});
+		}
+		return res.status(500).send(`
+			<html>
+				<head><title>OAuth Not Configured</title></head>
+				<body style="font-family: system-ui; padding: 40px; max-width: 600px; margin: 0 auto;">
+					<h1>⚠️ Google OAuth Not Configured</h1>
+					<p>To enable Google login, you need to:</p>
+					<ol>
+						<li>Create OAuth credentials at <a href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console</a></li>
+						<li>Add redirect URL: <code>${googleRedirectUri}</code></li>
+						<li>Set Web application type, add your authorized domains</li>
+						<li>Add these to your <code>.env</code> file:
+							<pre style="background: #f5f5f5; padding: 10px; border-radius: 4px;">GOOGLE_CLIENT_ID=your_client_id
+GOOGLE_CLIENT_SECRET=your_client_secret
+GOOGLE_REDIRECT_URI=${googleRedirectUri}</pre>
+						</li>
+						<li>Restart the server</li>
+					</ol>
+					<p><a href="/">← Back to home</a></p>
+				</body>
+			</html>
+		`);
+	}
+
+	const params = new URLSearchParams({
+		client_id: googleClientId,
+		redirect_uri: googleRedirectUri,
+		response_type: 'code',
+		scope: 'openid email profile',
+		access_type: 'offline',
+		prompt: 'consent'
+	});
+
+	return res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+});
+
 app.get('/api/auth/callback', async (req, res) => {
 	const code = req.query.code;
 	if (!code) return res.status(400).send('Missing code');
@@ -602,8 +742,6 @@ app.get('/api/auth/callback', async (req, res) => {
 			avatar: discordUser.avatar ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png` : null
 		});
 
-		// Auto-promote admins from ADMIN_IDS env variable
-		const adminIds = process.env.ADMIN_IDS ? process.env.ADMIN_IDS.split(',').map(id => id.trim()) : [];
 		if (adminIds.includes(discordUser.id)) {
 			await db.setAdmin(discordUser.id, true);
 		}
@@ -626,9 +764,85 @@ app.get('/api/auth/callback', async (req, res) => {
 	}
 });
 
-app.get('/api/auth/me', (req, res) => {
+app.get('/api/auth/google/callback', async (req, res) => {
+	const code = req.query.code;
+	if (!code) return res.status(400).send('Missing code');
+	if (!googleClientId || !googleClientSecret) {
+		return res.status(500).send('Google OAuth not configured');
+	}
+
+	try {
+		const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+			body: new URLSearchParams({
+				code,
+				client_id: googleClientId,
+				client_secret: googleClientSecret,
+				redirect_uri: googleRedirectUri,
+				grant_type: 'authorization_code'
+			})
+		});
+
+		if (!tokenResponse.ok) {
+			const text = await tokenResponse.text();
+			console.error('Google token exchange failed', text);
+			return res.status(400).send('Failed to sign in with Google');
+		}
+
+		const tokenData = await tokenResponse.json();
+		const userResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+			headers: { Authorization: `Bearer ${tokenData.access_token}` }
+		});
+
+		if (!userResponse.ok) {
+			console.error('Google user fetch failed', await userResponse.text());
+			return res.status(400).send('Failed to fetch Google profile');
+		}
+
+		const googleUser = await userResponse.json();
+		const externalId = `g-${googleUser.sub}`;
+		const displayName = (googleUser.name || googleUser.given_name || 'User').trim().slice(0, 80) || 'User';
+		const avatar = googleUser.picture || null;
+
+		const user = await db.upsertUser({
+			discordId: externalId,
+			username: displayName,
+			avatar
+		});
+
+		if (adminIds.includes(externalId)) {
+			await db.setAdmin(externalId, true);
+		}
+
+		const updatedUser = (await db.getUserByDiscordId(externalId)) || user;
+
+		if (updatedUser.isBanned || updatedUser.isbanned) {
+			return res.status(403).send('Your account has been banned and cannot access this platform.');
+		}
+
+		const session = signSession(updatedUser);
+		res.cookie('session', session, sessionCookieOptions);
+
+		return res.redirect(`${frontendBase}/`);
+	} catch (authErr) {
+		console.error('Google auth error', authErr);
+		return res.status(500).send('Authentication failed');
+	}
+});
+
+app.get('/api/auth/me', async (req, res) => {
 	if (!req.user) return res.status(401).json({ user: null });
-	return res.json({ user: req.user });
+	let user = req.user;
+	if (typeof db.getUserByDiscordId === 'function') {
+		const fresh = await db.getUserByDiscordId(req.user.discordId);
+		if (fresh) {
+			user = normalizeUser(fresh);
+			const session = signSession(fresh);
+			res.cookie('session', session, sessionCookieOptions);
+		}
+	}
+	return res.json({ user });
 });
 
 app.post('/api/auth/logout', (req, res) => {

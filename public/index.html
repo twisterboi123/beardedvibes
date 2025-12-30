@@ -197,7 +197,10 @@
       filtered.forEach((p) => {
         const card = document.createElement('div');
         card.className = 'video-card';
-        card.onclick = () => window.location.href = `/post/${p.id}`;
+        card.onclick = (e) => {
+          if (e.target.closest('.channel-name, .channel-avatar')) return;
+          window.location.href = `/post/${p.id}`;
+        };
 
         const thumbWrap = document.createElement('div');
         thumbWrap.className = 'video-thumbnail';
@@ -229,6 +232,14 @@
         const avatar = document.createElement('div');
         avatar.className = 'channel-avatar';
         setAvatar(avatar, p.uploaderAvatar, p.uploaderName || 'U');
+        if (p.uploaderDiscordId) {
+          avatar.style.cursor = 'pointer';
+          avatar.title = 'View profile';
+          avatar.onclick = (e) => {
+            e.stopPropagation();
+            window.location.href = `/profile.html?id=${p.uploaderDiscordId}`;
+          };
+        }
 
         const details = document.createElement('div');
         details.className = 'video-details';

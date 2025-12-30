@@ -300,11 +300,24 @@ async function init() {
     const uploaderName = data.uploaderName || 'Unknown uploader';
     uploaderTag.textContent = data.uploaderDiscordId ? `@${data.uploaderDiscordId}` : 'Uploader unknown';
     uploaderNameEl.textContent = uploaderName + (data.uploaderVerified ? ' ✓' : '');
+    state.uploaderDiscordId = data.uploaderDiscordId || null;
+    setAvatar(uploaderAvatarEl, data.uploaderAvatar, uploaderName);
     if (state.uploaderDiscordId) {
       uploaderNameEl.href = `/profile.html?id=${state.uploaderDiscordId}`;
+      uploaderNameEl.style.cursor = 'pointer';
+      uploaderNameEl.title = 'View profile';
+      uploaderNameEl.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        window.location.href = `/profile.html?id=${state.uploaderDiscordId}`;
+      };
+      uploaderAvatarEl.style.cursor = 'pointer';
+      uploaderAvatarEl.title = 'View profile';
+      uploaderAvatarEl.onclick = (e) => {
+        e.stopPropagation();
+        window.location.href = `/profile.html?id=${state.uploaderDiscordId}`;
+      };
     }
-    setAvatar(uploaderAvatarEl, data.uploaderAvatar, uploaderName);
-    state.uploaderDiscordId = data.uploaderDiscordId || null;
     likeCount.textContent = data.likes ?? 0;
     updateLikeButton(Boolean(data.liked));
     // watch later initial state (optional; not provided by API yet)

@@ -138,7 +138,7 @@ export function createDatabase(config) {
 
       async getUserByDiscordId(discordId) {
         const res = await pool.query(
-          `SELECT id, discordId AS "discordId", username, avatar
+          `SELECT id, discordId AS "discordId", username, avatar, isAdmin AS "isAdmin", isBanned AS "isBanned", isVerified AS "isVerified"
            FROM users
            WHERE discordId = $1
            LIMIT 1`,
@@ -368,7 +368,20 @@ export function createDatabase(config) {
       },
 
       async getUserByDiscordId(discordId) {
-        const res = await pool.query('SELECT * FROM users WHERE discordId = $1 LIMIT 1', [discordId]);
+        const res = await pool.query('SELECT id, discordId AS "discordId", username, avatar, isAdmin AS "isAdmin", isBanned AS "isBanned", isVerified AS "isVerified" FROM users WHERE discordId = $1 LIMIT 1', [discordId]);
+        return res.rows[0] || null;
+      },
+
+      async updateUserProfile(discordId, { username, avatar }) {
+        const res = await pool.query(
+          `UPDATE users
+           SET username = COALESCE($2, username),
+               avatar = COALESCE($3, avatar),
+               lastSeenAt = NOW()
+           WHERE discordId = $1
+           RETURNING id, discordId AS "discordId", username, avatar, isAdmin AS "isAdmin", isBanned AS "isBanned", isVerified AS "isVerified"`,
+          [discordId, username ?? null, avatar ?? null]
+        );
         return res.rows[0] || null;
       },
 
@@ -637,7 +650,7 @@ export function createDatabase(config) {
     },
 
     async getUserByDiscordId(discordId) {
-      return db.prepare('SELECT id, discordId, username, avatar FROM users WHERE discordId = ? LIMIT 1').get(discordId);
+      return db.prepare('SELECT id, discordId, username, avatar, isAdmin, isBanned, isVerified FROM users WHERE discordId = ? LIMIT 1').get(discordId);
     },
 
     insertPost: (data) => Promise.resolve(insertPostStmt.run(data)),
@@ -740,7 +753,19 @@ export function createDatabase(config) {
     },
 
     async getUserByDiscordId(discordId) {
-      return db.prepare('SELECT * FROM users WHERE discordId = ? LIMIT 1').get(discordId) || null;
+      return db.prepare('SELECT id, discordId, username, avatar, isAdmin, isBanned, isVerified FROM users WHERE discordId = ? LIMIT 1').get(discordId) || null;
+    },
+
+    async updateUserProfile(discordId, { username, avatar }) {
+      const stmt = db.prepare(`
+        UPDATE users
+        SET username = COALESCE(@username, username),
+            avatar = COALESCE(@avatar, avatar),
+            lastSeenAt = datetime('now')
+        WHERE discordId = @discordId
+        RETURNING id, discordId, username, avatar, isAdmin, isBanned, isVerified
+      `);
+      return stmt.get({ discordId, username: username ?? null, avatar: avatar ?? null }) || null;
     },
 
     async getUserProfile(discordId) {

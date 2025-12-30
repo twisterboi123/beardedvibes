@@ -71,6 +71,7 @@
     });
 
     let currentUser = null;
+    let currentProfileId = null;
 
     function setAvatar(el, url, fallback) {
       el.innerHTML = '';
@@ -113,6 +114,10 @@
       if (currentUser) {
         userMenu.style.display = 'flex';
         setAvatar(userAvatar, currentUser.avatar, currentUser.username || 'User');
+        userMenu.title = 'View or edit your profile';
+        userMenu.onclick = () => {
+          window.location.href = '/profile.html?id=me';
+        };
       } else {
         userMenu.innerHTML = '<a href="/api/auth/login" class="login-btn">Login</a>';
       }
@@ -120,54 +125,104 @@
 
     async function loadProfile() {
       const params = new URLSearchParams(window.location.search);
-      const discordId = params.get('id');
+      const requestedId = params.get('id');
+      const wantsSelf = !requestedId || requestedId === 'me' || requestedId === 'self';
+
+      if (wantsSelf && !currentUser) {
+        document.getElementById('profile-container').innerHTML = '<div style="text-align: center; padding: 40px;"><h2>Login required</h2><p><a href="/api/auth/login" class="login-btn">Sign in</a> to view your profile.</p></div>';
+        return;
+      }
+
+      const discordId = wantsSelf ? currentUser?.discordId : requestedId;
 
       if (!discordId) {
         document.getElementById('profile-container').innerHTML = '<div style="text-align: center; padding: 40px;"><h2>Profile not found</h2><p>No user specified.</p></div>';
         return;
       }
 
+      currentProfileId = discordId;
+      const endpoint = wantsSelf ? '/api/me/profile' : `/api/user/${discordId}/profile`;
+
       try {
-        const res = await fetch(`/api/user/${discordId}/profile`);
+        const res = await fetch(endpoint);
         if (!res.ok) throw new Error('Profile not found');
         const data = await res.json();
-        renderProfile(data);
+        renderProfile(data, wantsSelf && currentUser && currentUser.discordId === discordId);
       } catch (err) {
         document.getElementById('profile-container').innerHTML = `<div style="text-align: center; padding: 40px;"><h2>Error</h2><p>${err.message}</p></div>`;
       }
     }
 
-    function renderProfile(data) {
+    function renderProfile(data, isOwn) {
       const container = document.getElementById('profile-container');
+      const safeName = escapeHtml(data.username || 'User');
+      const safeInitial = safeName.charAt(0).toUpperCase();
+      const safeHandle = escapeHtml(data.discordId || '');
       
       const header = `
-        <div style="display: flex; align-items: center; gap: 20px; padding: 30px; background: var(--yt-bg-secondary); border-radius: 12px; margin-bottom: 30px;">
-          <div class="avatar" style="width: 120px; height: 120px; border-radius: 50%; overflow: hidden; flex-shrink: 0;">
-            ${data.avatar ? `<img src="${data.avatar}" alt="${data.username}" style="width: 100%; height: 100%; object-fit: cover;">` : `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-size: 48px; font-weight: 600;">${data.username.charAt(0).toUpperCase()}</div>`}
+        <div class="profile-header">
+          <div class="profile-avatar">
+            ${data.avatar ? `<img src="${data.avatar}" alt="${safeName}">` : `<div class="avatar-placeholder">${safeInitial}</div>`}
           </div>
-          <div style="flex: 1;">
-            <h1 style="margin: 0 0 8px 0; font-size: 32px; color: var(--yt-text);">
-              ${escapeHtml(data.username)}
-              ${data.isVerified ? '<span style="color: #065fd4; font-size: 28px;"> ✓</span>' : ''}
-            </h1>
-            <p style="margin: 0 0 15px 0; color: var(--yt-text-secondary);">@${data.discordId}</p>
-            <div style="display: flex; gap: 30px; font-size: 14px; color: var(--yt-text-secondary);">
-              <div><strong style="color: var(--yt-text); font-size: 20px;">${data.totalVideos || 0}</strong> videos</div>
-              <div><strong style="color: var(--yt-text); font-size: 20px;">${data.totalLikes || 0}</strong> likes</div>
-              <div><strong style="color: var(--yt-text); font-size: 20px;">${data.followerCount || 0}</strong> followers</div>
+          <div class="profile-meta">
+            <div class="profile-name-row">
+              <h1>${safeName}</h1>
+              ${data.isVerified ? '<span class="verified-badge">✓</span>' : ''}
+            </div>
+            <p class="profile-handle">@${safeHandle}</p>
+            <div class="profile-stats">
+              <div><strong>${data.totalVideos || 0}</strong><span>videos</span></div>
+              <div><strong>${data.totalLikes || 0}</strong><span>likes</span></div>
+              <div><strong>${data.followerCount || 0}</strong><span>followers</span></div>
             </div>
           </div>
         </div>
       `;
 
+      const editPanel = isOwn ? `
+        <section class="profile-edit-card">
+          <div class="edit-card-header">
+            <div>
+              <p class="eyebrow">Your profile</p>
+              <h2>Update name & avatar</h2>
+            </div>
+            <span class="pill pill-subtle">Visible across the site</span>
+          </div>
+          <form id="profile-edit-form" class="profile-edit-form">
+            <div class="form-row">
+              <label for="display-name">Display name</label>
+              <input id="display-name" name="username" type="text" maxlength="80" placeholder="How should people see you?" value="${escapeAttribute(data.username)}">
+            </div>
+            <div class="form-row">
+              <label>Profile picture</label>
+              <div class="avatar-picker">
+                <div id="avatar-preview" class="avatar-preview">${data.avatar ? `<img src="${data.avatar}" alt="Avatar preview">` : `<div class="avatar-fallback">${safeInitial}</div>`}</div>
+                <div class="avatar-actions">
+                  <input id="avatar-input" name="avatar" type="file" accept="image/*" style="display:none;">
+                  <button type="button" id="pick-avatar" class="ghost-btn">Choose image</button>
+                  <p class="hint">PNG, JPG, or WebP up to 5 MB.</p>
+                </div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="primary-btn">Save changes</button>
+              <span id="profile-edit-status" class="status-text"></span>
+            </div>
+          </form>
+        </section>
+      ` : '';
+
       const videosSection = `
-        <div>
-          <h2 style="color: var(--yt-text); margin-bottom: 20px;">Videos</h2>
+        <section>
+          <div class="section-header">
+            <h2>Videos</h2>
+            <span class="pill">${data.totalVideos || 0} total</span>
+          </div>
           <div class="video-grid" id="videos-grid">
             ${data.videos && data.videos.length > 0 ? data.videos.map(v => `
               <div class="video-card" onclick="window.location.href='/post.html?id=${v.id}'">
                 <div class="thumbnail-wrapper">
-                  ${v.type === 'video' ? `<video src="${v.filename}" class="thumbnail"></video>` : `<img src="${v.filename}" class="thumbnail" alt="${escapeHtml(v.title || 'Untitled')}">`}
+                  ${v.type === 'video' ? `<video src="${v.fileUrl || v.filename}" class="thumbnail"></video>` : `<img src="${v.fileUrl || v.filename}" class="thumbnail" alt="${escapeHtml(v.title || 'Untitled')}">`}
                   <div class="duration-badge">${v.format === 'short' ? 'Short' : 'Video'}</div>
                 </div>
                 <div class="video-info">
@@ -179,16 +234,74 @@
               </div>
             `).join('') : '<p style="color: var(--yt-text-secondary);">No videos yet</p>'}
           </div>
-        </div>
+        </section>
       `;
 
-      container.innerHTML = header + videosSection;
+      container.innerHTML = header + editPanel + videosSection;
+
+      if (isOwn) {
+        wireProfileForm(data);
+      }
+    }
+
+    function wireProfileForm(data) {
+      const form = document.getElementById('profile-edit-form');
+      const nameInput = document.getElementById('display-name');
+      const fileInput = document.getElementById('avatar-input');
+      const pickBtn = document.getElementById('pick-avatar');
+      const preview = document.getElementById('avatar-preview');
+      const status = document.getElementById('profile-edit-status');
+
+      pickBtn.addEventListener('click', () => fileInput.click());
+
+      fileInput.addEventListener('change', () => {
+        const file = fileInput.files?.[0];
+        if (!file) return;
+        const url = URL.createObjectURL(file);
+        preview.innerHTML = `<img src="${url}" alt="Avatar preview">`;
+      });
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        status.textContent = '';
+
+        const fd = new FormData();
+        const nextName = nameInput.value.trim();
+        if (nextName && nextName !== data.username) fd.append('username', nextName);
+        if (fileInput.files?.[0]) fd.append('avatar', fileInput.files[0]);
+
+        if (!fd.has('username') && !fd.has('avatar')) {
+          status.textContent = 'Nothing to update.';
+          return;
+        }
+
+        try {
+          status.textContent = 'Saving...';
+          const res = await fetch('/api/me/profile', {
+            method: 'PATCH',
+            body: fd
+          });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || 'Failed to save');
+          }
+          status.textContent = 'Saved!';
+          await loadUser();
+          await loadProfile();
+        } catch (err) {
+          status.textContent = err.message;
+        }
+      });
     }
 
     function escapeHtml(text) {
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
+    }
+
+    function escapeAttribute(text) {
+      return escapeHtml(text || '');
     }
 
     async function init() {
