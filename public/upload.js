@@ -11,6 +11,7 @@ const dropzone = document.getElementById('dropzone');
 const publishCheckbox = document.getElementById('publish-now');
 const formatInput = document.getElementById('format-input');
 const formatButtons = document.querySelectorAll('#format-toggle .tab');
+const formatToggle = document.getElementById('format-toggle');
 const filePreview = document.getElementById('file-preview');
 const previewMedia = document.getElementById('preview-media');
 const previewName = document.getElementById('preview-name');
@@ -32,12 +33,46 @@ function formatFileSize(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
+// Update format toggle based on file type
+function updateFormatOptions(file) {
+  const isImage = file && file.type.startsWith('image/');
+  const isVideo = file && file.type.startsWith('video/');
+  
+  formatButtons.forEach((btn) => {
+    const fmt = btn.dataset.format;
+    if (isImage) {
+      // For images: only show photo, auto-select it
+      btn.style.display = fmt === 'photo' ? '' : 'none';
+      btn.classList.toggle('active', fmt === 'photo');
+    } else if (isVideo) {
+      // For videos: show short/long, hide photo
+      btn.style.display = fmt === 'photo' ? 'none' : '';
+      // Default to long form for videos
+      if (formatInput.value === 'photo') {
+        formatInput.value = 'long';
+        btn.classList.toggle('active', fmt === 'long');
+      }
+    } else {
+      // No file: show all options
+      btn.style.display = '';
+    }
+  });
+  
+  // Auto-set format for images
+  if (isImage) {
+    formatInput.value = 'photo';
+  }
+}
+
 // Show file preview
 function showPreview(file) {
   if (!file) {
     hidePreview();
     return;
   }
+  
+  // Update format options based on file type
+  updateFormatOptions(file);
   
   previewMedia.innerHTML = '';
   previewName.textContent = file.name;
@@ -71,12 +106,22 @@ function hidePreview() {
   previewMedia.innerHTML = '';
   previewName.textContent = '';
   previewSize.textContent = '';
+  // Reset format options when file is removed
+  formatButtons.forEach((btn) => {
+    btn.style.display = '';
+  });
 }
 
 // Remove file
 function removeFile() {
   fileInput.value = '';
   hidePreview();
+  // Reset to default format
+  formatInput.value = 'long';
+  formatButtons.forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.format === 'long');
+    btn.style.display = '';
+  });
   fileLabel.innerHTML = 'Drag & drop or click to choose<br><small style="color: var(--yt-text-secondary);">mp4, webm, jpg, png, webp</small>';
 }
 

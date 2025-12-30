@@ -359,9 +359,15 @@
       const filtered = posts
         .filter((p) => {
           const fmt = p.format || 'long';
-          if (currentFeed === 'photos') return fmt === 'photo';
-          if (currentFormat === 'all') return fmt === 'long'; // Only long-form videos on home
-          return fmt === currentFormat;
+          const isPhoto = fmt === 'photo' || p.type === 'image';
+          const isShort = fmt === 'short' && p.type === 'video';
+          const isLongVideo = fmt === 'long' && p.type === 'video';
+          
+          if (currentFeed === 'photos') return isPhoto;
+          if (currentFormat === 'all') return isLongVideo; // Only long-form videos on home
+          if (currentFormat === 'short') return isShort;
+          if (currentFormat === 'long') return isLongVideo;
+          return false;
         });
       if (!filtered.length) {
         empty.style.display = 'block';
@@ -382,9 +388,25 @@
         const thumb = document.createElement(p.type === 'video' ? 'video' : 'img');
         thumb.src = p.fileUrl;
         thumb.loading = 'lazy';
+        
+        // Only show duration badge for videos
+        let duration = null;
         if (p.type === 'video') {
           thumb.muted = true;
           thumb.preload = 'metadata';
+          
+          // Create duration badge for videos
+          duration = document.createElement('span');
+          duration.className = 'duration-badge';
+          duration.textContent = '0:00'; // Placeholder until loaded
+          
+          // Get actual duration when video metadata loads
+          thumb.addEventListener('loadedmetadata', () => {
+            if (thumb.duration && !isNaN(thumb.duration) && isFinite(thumb.duration)) {
+              duration.textContent = formatDuration(thumb.duration);
+            }
+          });
+          
           thumbWrap.addEventListener('mouseenter', () => {
             thumb.play().catch(() => {});
           });
@@ -394,11 +416,8 @@
           });
         }
         
-        const duration = document.createElement('span');
-        duration.className = 'duration-badge';
-        duration.textContent = formatDuration(p.duration || 0);
-        
-        thumbWrap.append(thumb, duration);
+        thumbWrap.appendChild(thumb);
+        if (duration) thumbWrap.appendChild(duration);
 
         const info = document.createElement('div');
         info.className = 'video-info';

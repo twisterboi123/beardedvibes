@@ -208,8 +208,22 @@ app.post('/api/upload', requireAuth, (req, res) => {
 			res.clearCookie('session', sessionCookieOptions);
 			return res.status(401).json({ error: 'Login expired. Please sign in again.' });
 		}
+		
+		const type = detectType(req.file.mimetype);
+		if (type === 'unknown') {
+			fs.unlink(req.file.path, () => {});
+			return res.status(400).json({ error: 'Unsupported file type' });
+		}
+		
+		// Auto-detect format: images are always 'photo', videos use user selection
 		const formatVal = req.body?.format;
-		const format = ['short', 'long', 'photo'].includes(formatVal) ? formatVal : 'long';
+		let format;
+		if (type === 'image') {
+			format = 'photo'; // Images are always photos
+		} else {
+			format = ['short', 'long'].includes(formatVal) ? formatVal : 'long';
+		}
+		
 		const publishNow = req.body?.publish === 'true' || req.body?.publish === 'on';
 		const title = String(req.body?.title || '').trim().slice(0, 200);
 		const description = String(req.body?.description || '').trim().slice(0, 2000);
@@ -218,12 +232,6 @@ app.post('/api/upload', requireAuth, (req, res) => {
 			await db.upsertUser({ discordId: uploaderDiscordId, username: uploaderName, avatar: req.user?.avatar || null });
 		} catch (userErr) {
 			console.warn('Could not upsert uploader user', userErr?.message);
-		}
-
-		const type = detectType(req.file.mimetype);
-		if (type === 'unknown') {
-			fs.unlink(req.file.path, () => {});
-			return res.status(400).json({ error: 'Unsupported file type' });
 		}
 
 		try {
