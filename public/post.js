@@ -299,7 +299,7 @@ async function init() {
     publishedAtEl.textContent = `Published on ${new Date(data.createdAt).toLocaleString()}`;
     const uploaderName = data.uploaderName || 'Unknown uploader';
     uploaderTag.textContent = data.uploaderDiscordId ? `@${data.uploaderDiscordId}` : 'Uploader unknown';
-    uploaderNameEl.textContent = uploaderName;
+    uploaderNameEl.textContent = uploaderName + (data.uploaderVerified ? ' ✓' : '');
     setAvatar(uploaderAvatarEl, data.uploaderAvatar, uploaderName);
     state.uploaderDiscordId = data.uploaderDiscordId || null;
     likeCount.textContent = data.likes ?? 0;

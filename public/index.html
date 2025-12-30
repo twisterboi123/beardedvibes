@@ -203,7 +203,7 @@
 
         const channelName = document.createElement('div');
         channelName.className = 'channel-name';
-        channelName.textContent = p.uploaderName || 'Unknown';
+        channelName.textContent = (p.uploaderName || 'Unknown') + (p.uploaderVerified ? ' ✓' : '');
 
         const meta = document.createElement('div');
         meta.className = 'video-meta';

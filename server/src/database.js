@@ -8,7 +8,16 @@ export function createDatabase(config) {
     const pool = new Pool({ connectionString: config.url, ssl: config.ssl ? { rejectUnauthorized: false } : false });
 
     const postWithLikes = `
-      SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar"
+      SELECT 
+        p.id, p.filename, p.type, p.title, p.description, 
+        p.uploaderdiscordid AS "uploaderDiscordId", 
+        p.uploadername AS "uploaderName", 
+        p.status, p.edittoken AS "editToken", 
+        p.createdat AS "createdAt", 
+        p.format,
+        COALESCE(lc.count, 0) AS likes, 
+        u.avatar AS "uploaderAvatar",
+        COALESCE(u.isverified, false) AS "uploaderVerified"
       FROM posts p
       LEFT JOIN (
         SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
@@ -165,7 +174,7 @@ export function createDatabase(config) {
 
       async listPublished() {
         const res = await pool.query(`
-          SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar"
+          SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar", COALESCE(u.isverified, false) AS "uploaderVerified"
           FROM posts p
           LEFT JOIN (
             SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
@@ -179,7 +188,7 @@ export function createDatabase(config) {
 
       async listTrending() {
         const res = await pool.query(`
-          SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar"
+          SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar", COALESCE(u.isverified, false) AS "uploaderVerified"
           FROM posts p
           LEFT JOIN (
             SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
@@ -194,7 +203,7 @@ export function createDatabase(config) {
 
       async listLiked(userId) {
         const res = await pool.query(`
-          SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar"
+          SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar", COALESCE(u.isverified, false) AS "uploaderVerified"
           FROM likes l
           JOIN posts p ON p.id = l.postId
           LEFT JOIN (
@@ -209,7 +218,7 @@ export function createDatabase(config) {
 
       async listHistory(userId) {
         const res = await pool.query(`
-          SELECT p.*, h.viewedAt, COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar"
+          SELECT p.*, h.viewedAt, COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar", COALESCE(u.isverified, false) AS "uploaderVerified"
           FROM history h
           JOIN posts p ON p.id = h.postId
           LEFT JOIN (
@@ -224,7 +233,7 @@ export function createDatabase(config) {
 
       async listWatchlist(userId) {
         const res = await pool.query(`
-          SELECT p.*, w.addedAt, COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar"
+          SELECT p.*, w.addedAt, COALESCE(lc.count, 0) AS likes, u.avatar AS "uploaderAvatar", COALESCE(u.isverified, false) AS "uploaderVerified"
           FROM watchlist w
           JOIN posts p ON p.id = w.postId
           LEFT JOIN (
@@ -498,7 +507,7 @@ export function createDatabase(config) {
     VALUES (@filename, @type, @title, @description, @uploaderDiscordId, @uploaderName, @status, @editToken, @createdAt)
   `);
   const getPostStmt = db.prepare(`
-    SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS uploaderAvatar
+    SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS uploaderAvatar, COALESCE(u.isVerified, 0) AS uploaderVerified
     FROM posts p
     LEFT JOIN (
       SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
@@ -507,7 +516,7 @@ export function createDatabase(config) {
     WHERE p.id = ?
   `);
   const listPublishedStmt = db.prepare(`
-    SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS uploaderAvatar
+    SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS uploaderAvatar, COALESCE(u.isVerified, 0) AS uploaderVerified
     FROM posts p
     LEFT JOIN (
       SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
@@ -517,7 +526,7 @@ export function createDatabase(config) {
     ORDER BY p.id DESC
   `);
   const listTrendingStmt = db.prepare(`
-    SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS uploaderAvatar
+    SELECT p.*, COALESCE(lc.count, 0) AS likes, u.avatar AS uploaderAvatar, COALESCE(u.isVerified, 0) AS uploaderVerified
     FROM posts p
     LEFT JOIN (
       SELECT postId, COUNT(*) AS count FROM likes GROUP BY postId
@@ -547,7 +556,7 @@ export function createDatabase(config) {
     ON CONFLICT(postId, userId) DO UPDATE SET viewedAt = excluded.viewedAt
   `);
   const listHistoryStmt = db.prepare(`
-    SELECT p.*, h.viewedAt, COALESCE(lc.count, 0) AS likes, u.avatar AS uploaderAvatar
+    SELECT p.*, h.viewedAt, COALESCE(lc.count, 0) AS likes, u.avatar AS uploaderAvatar, COALESCE(u.isVerified, 0) AS uploaderVerified
     FROM history h
     JOIN posts p ON p.id = h.postId
     LEFT JOIN (
@@ -565,7 +574,7 @@ export function createDatabase(config) {
   const removeWatchStmt = db.prepare('DELETE FROM watchlist WHERE postId = ? AND userId = ?');
   const hasWatchStmt = db.prepare('SELECT 1 FROM watchlist WHERE postId = ? AND userId = ?');
   const listWatchlistStmt = db.prepare(`
-    SELECT p.*, w.addedAt, COALESCE(lc.count, 0) AS likes, u.avatar AS uploaderAvatar
+    SELECT p.*, w.addedAt, COALESCE(lc.count, 0) AS likes, u.avatar AS uploaderAvatar, COALESCE(u.isVerified, 0) AS uploaderVerified
     FROM watchlist w
     JOIN posts p ON p.id = w.postId
     LEFT JOIN (
