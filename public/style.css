@@ -409,6 +409,22 @@ body.youtube-layout {
   color: rgba(255, 255, 255, 0.6);
 }
 
+.guidelines-notice {
+  margin-top: 6px;
+  font-size: 10px;
+}
+
+.guidelines-notice a {
+  color: #ff6a00;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.guidelines-notice a:hover {
+  color: #ff9500;
+  text-decoration: underline;
+}
+
 /* Sidebar */
 .sidebar {
   grid-area: sidebar;
@@ -711,7 +727,7 @@ body.youtube-layout {
 
 .video-details {
   flex: 1;
-  overflow: hidden;
+  min-width: 0;
 }
 
 .video-title {
@@ -740,6 +756,15 @@ body.youtube-layout {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: wrap;
+}
+
+.channel-name span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .channel-name:hover {
@@ -775,6 +800,54 @@ body.youtube-layout {
   font-size: 14px;
   display: inline-flex;
   align-items: center;
+}
+
+/* Staff Badge */
+.staff-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #9c27b0, #e040fb);
+  color: #ffffff !important;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(156, 39, 176, 0.5);
+  letter-spacing: 0.3px;
+}
+
+.staff-badge svg {
+  width: 12px;
+  height: 12px;
+  fill: #ffffff !important;
+  flex-shrink: 0;
+}
+
+/* Owner Badge */
+.owner-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #ff6a00, #ff9500);
+  color: #ffffff !important;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(255, 106, 0, 0.5);
+  letter-spacing: 0.3px;
+}
+
+.owner-badge svg {
+  width: 12px;
+  height: 12px;
+  fill: #ffffff !important;
+  flex-shrink: 0;
 }
 
 .video-meta {
@@ -1839,6 +1912,8 @@ button:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 16px 34
 .like-count { font-weight: 700; color: #ffd7bf; }
 .delete-btn { display: inline-flex; align-items: center; gap: 8px; background: rgba(255, 45, 85, 0.15); border: 1px solid rgba(255, 45, 85, 0.3); color: #ff4d6a; padding: 10px 16px; border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
 .delete-btn:hover { background: rgba(255, 45, 85, 0.25); border-color: rgba(255, 45, 85, 0.5); }
+.report-btn { display: inline-flex; align-items: center; gap: 8px; background: rgba(255, 165, 0, 0.15); border: 1px solid rgba(255, 165, 0, 0.3); color: #ffa500; padding: 10px 16px; border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+.report-btn:hover { background: rgba(255, 165, 0, 0.25); border-color: rgba(255, 165, 0, 0.5); }
 
 /* Recommended Videos Section */
 .recommended-section { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--yt-border); }

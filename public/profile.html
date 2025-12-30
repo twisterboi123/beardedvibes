@@ -97,6 +97,52 @@
   flex-shrink: 0;
 }
 
+.staff-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #9c27b0, #e040fb);
+  color: #ffffff !important;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(156, 39, 176, 0.5);
+  letter-spacing: 0.3px;
+}
+
+.staff-badge svg {
+  width: 14px;
+  height: 14px;
+  fill: #ffffff !important;
+  flex-shrink: 0;
+}
+
+.owner-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #ff6a00, #ff9500);
+  color: #ffffff !important;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(255, 106, 0, 0.5);
+  letter-spacing: 0.3px;
+}
+
+.owner-badge svg {
+  width: 14px;
+  height: 14px;
+  fill: #ffffff !important;
+  flex-shrink: 0;
+}
+
 .handle {
   color: var(--yt-text-secondary);
   font-size: 14px;
@@ -120,6 +166,25 @@
   display: flex;
   gap: 10px;
   flex-shrink: 0;
+}
+
+.report-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 165, 0, 0.15);
+  border: 1px solid rgba(255, 165, 0, 0.3);
+  color: #ffa500;
+  padding: 10px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.report-btn:hover {
+  background: rgba(255, 165, 0, 0.25);
+  border-color: rgba(255, 165, 0, 0.5);
 }
 
 .btn {
@@ -404,6 +469,7 @@
     </div>
     <div class="profile-actions">
       <button class="btn" id="editBtn" style="display:none;">Edit profile</button>
+      <button class="report-btn" id="reportUserBtn" style="display:none;">🚩 Report</button>
     </div>
   </div>
 </section>
@@ -508,6 +574,22 @@ async function loadProfile(){
     const nameSpan = document.createElement('span');
     nameSpan.textContent = profileData.username || 'User';
     username.appendChild(nameSpan);
+    
+    // Owner badge (highest priority)
+    if (profileData.isOwner) {
+      const badge = document.createElement('span');
+      badge.className = 'owner-badge';
+      badge.innerHTML = '<svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>Owner';
+      username.appendChild(badge);
+    }
+    // Staff badge
+    if (profileData.isStaff) {
+      const badge = document.createElement('span');
+      badge.className = 'staff-badge';
+      badge.innerHTML = '<svg viewBox="0 0 24 24" style="width:12px;height:12px;fill:currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>Staff';
+      username.appendChild(badge);
+    }
+    // Verified badge
     if (profileData.isVerified) {
       const badge = document.createElement('span');
       badge.className = 'verified-badge';
@@ -546,9 +628,13 @@ async function loadProfile(){
 
     setAvatar(pfp, profileData.avatar, profileData.username);
 
-    // Show/hide edit button
+    // Show/hide edit button and report button
     const isOwn = currentUser && currentUser.discordId === profileData.discordId;
     editBtn.style.display = isOwn ? 'block' : 'none';
+    
+    // Show report button for other users' profiles (only if logged in)
+    const reportUserBtn = document.getElementById('reportUserBtn');
+    reportUserBtn.style.display = (!isOwn && currentUser) ? 'inline-flex' : 'none';
 
     renderContent();
   }catch(e){
@@ -717,6 +803,73 @@ topAvatar.onclick = () => {
   if(currentUser) window.location.href = '/profile.html?id=me';
   else window.location.href = '/api/auth/login';
 };
+
+/* REPORT USER */
+document.getElementById('reportUserBtn').addEventListener('click', async () => {
+  if (!currentUser) {
+    alert('Please sign in to report users');
+    window.location.href = '/api/auth/login';
+    return;
+  }
+  
+  const reasons = [
+    'Inappropriate profile content',
+    'Impersonation',
+    'Harassment or hate speech',
+    'Spam account',
+    'Other'
+  ];
+  
+  const reasonChoice = prompt(
+    'Why are you reporting this user?\\n\\n' +
+    reasons.map((r, i) => `${i + 1}. ${r}`).join('\\n') +
+    '\\n\\nEnter the number (1-5):'
+  );
+  
+  if (!reasonChoice) return;
+  
+  const reasonIndex = parseInt(reasonChoice) - 1;
+  if (isNaN(reasonIndex) || reasonIndex < 0 || reasonIndex >= reasons.length) {
+    alert('Invalid selection');
+    return;
+  }
+  
+  const reason = reasons[reasonIndex];
+  let details = '';
+  
+  if (reason === 'Other') {
+    details = prompt('Please describe the issue:');
+    if (!details) return;
+  }
+  
+  const reportBtn = document.getElementById('reportUserBtn');
+  reportBtn.disabled = true;
+  reportBtn.textContent = 'Reporting...';
+  
+  try {
+    const res = await fetch('/api/report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'user',
+        targetId: profileData.discordId,
+        reason: reason,
+        details: details || undefined
+      })
+    });
+    
+    const result = await res.json();
+    
+    if (!res.ok) throw new Error(result.error || 'Failed to submit report');
+    
+    alert('Thank you! Your report has been submitted and will be reviewed by our team.');
+  } catch (err) {
+    alert('Error: ' + err.message);
+  } finally {
+    reportBtn.disabled = false;
+    reportBtn.textContent = '🚩 Report';
+  }
+});
 
 /* INIT */
 async function init(){

@@ -44,6 +44,8 @@ export function createDatabase(config) {
         await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS isAdmin BOOLEAN DEFAULT FALSE`);
         await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS isBanned BOOLEAN DEFAULT FALSE`);
         await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS isVerified BOOLEAN DEFAULT FALSE`);
+        await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS isStaff BOOLEAN DEFAULT FALSE`);
+        await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS isOwner BOOLEAN DEFAULT FALSE`);
         await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT DEFAULT ''`);
         await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS banner TEXT DEFAULT ''`);
         await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profileColor TEXT DEFAULT '#3ea6ff'`);
@@ -416,7 +418,7 @@ export function createDatabase(config) {
       },
 
       async getUserByDiscordId(discordId) {
-        const res = await pool.query('SELECT id, discordId AS "discordId", username, avatar, isAdmin AS "isAdmin", isBanned AS "isBanned", isVerified AS "isVerified", bio, banner, profileColor AS "profileColor" FROM users WHERE discordId = $1 LIMIT 1', [discordId]);
+        const res = await pool.query('SELECT id, discordId AS "discordId", username, avatar, isAdmin AS "isAdmin", isBanned AS "isBanned", isVerified AS "isVerified", COALESCE(isStaff, false) AS "isStaff", COALESCE(isOwner, false) AS "isOwner", bio, banner, profileColor AS "profileColor" FROM users WHERE discordId = $1 LIMIT 1', [discordId]);
         return res.rows[0] || null;
       },
 
@@ -437,7 +439,7 @@ export function createDatabase(config) {
       },
 
       async getAllUsers() {
-        const res = await pool.query('SELECT id, discordId AS "discordId", username, avatar, isAdmin AS "isAdmin", isBanned AS "isBanned", isVerified AS "isVerified", bio, banner, profileColor AS "profileColor", createdAt AS "createdAt" FROM users ORDER BY createdAt DESC');
+        const res = await pool.query('SELECT id, discordId AS "discordId", username, avatar, isAdmin AS "isAdmin", isBanned AS "isBanned", isVerified AS "isVerified", COALESCE(isStaff, false) AS "isStaff", COALESCE(isOwner, false) AS "isOwner", bio, banner, profileColor AS "profileColor", createdAt AS "createdAt" FROM users ORDER BY createdAt DESC');
         return res.rows;
       },
 
@@ -488,7 +490,7 @@ export function createDatabase(config) {
 
       async getNotifications(userId) {
         const res = await pool.query(
-          `SELECT * FROM notifications WHERE userId = $1 ORDER BY createdAt DESC LIMIT 50`,
+          `SELECT id, userId AS "userId", type, title, message, read, createdAt AS "createdAt" FROM notifications WHERE userId = $1 ORDER BY createdAt DESC LIMIT 50`,
           [userId]
         );
         return res.rows;
@@ -547,6 +549,12 @@ export function createDatabase(config) {
   }
   if (!tableInfo.some(col => col.name === 'profileColor')) {
     db.exec("ALTER TABLE users ADD COLUMN profileColor TEXT DEFAULT '#3ea6ff'");
+  }
+  if (!tableInfo.some(col => col.name === 'isStaff')) {
+    db.exec('ALTER TABLE users ADD COLUMN isStaff INTEGER DEFAULT 0');
+  }
+  if (!tableInfo.some(col => col.name === 'isOwner')) {
+    db.exec('ALTER TABLE users ADD COLUMN isOwner INTEGER DEFAULT 0');
   }
   db.exec(`
     CREATE TABLE IF NOT EXISTS posts (
@@ -874,13 +882,15 @@ export function createDatabase(config) {
     },
 
     async getUserByDiscordId(discordId) {
-      const user = db.prepare('SELECT id, discordId, username, avatar, isAdmin, isBanned, isVerified, bio, banner, profileColor FROM users WHERE discordId = ? LIMIT 1').get(discordId) || null;
+      const user = db.prepare('SELECT id, discordId, username, avatar, isAdmin, isBanned, isVerified, isStaff, isOwner, bio, banner, profileColor FROM users WHERE discordId = ? LIMIT 1').get(discordId) || null;
       if (!user) return null;
       return {
         ...user,
         isAdmin: Boolean(user.isAdmin),
         isBanned: Boolean(user.isBanned),
-        isVerified: Boolean(user.isVerified)
+        isVerified: Boolean(user.isVerified),
+        isStaff: Boolean(user.isStaff),
+        isOwner: Boolean(user.isOwner)
       };
     },
 
@@ -933,12 +943,14 @@ export function createDatabase(config) {
     },
 
     async getAllUsers() {
-      const users = db.prepare('SELECT id, discordId, username, avatar, isAdmin, isBanned, isVerified, createdAt FROM users ORDER BY createdAt DESC').all();
+      const users = db.prepare('SELECT id, discordId, username, avatar, isAdmin, isBanned, isVerified, isStaff, isOwner, createdAt FROM users ORDER BY createdAt DESC').all();
       return users.map(u => ({
         ...u,
         isAdmin: Boolean(u.isAdmin),
         isBanned: Boolean(u.isBanned),
-        isVerified: Boolean(u.isVerified)
+        isVerified: Boolean(u.isVerified),
+        isStaff: Boolean(u.isStaff),
+        isOwner: Boolean(u.isOwner)
       }));
     },
 

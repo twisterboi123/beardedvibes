@@ -476,6 +476,20 @@ app.post('/api/post/:id/like', requireAuth, async (req, res) => {
 	const alreadyLiked = await db.hasUserLiked(id, req.user.id);
 	const likes = await db.setLike(id, req.user.id, !alreadyLiked);
 
+	// Send notification to post owner when someone likes (not unlikes) their post
+	if (!alreadyLiked && row.uploaderDiscordId && row.uploaderDiscordId !== req.user.discordId) {
+		try {
+			await db.createNotification(
+				row.uploaderDiscordId,
+				'like',
+				'New Like!',
+				`${req.user.username || 'Someone'} liked your post "${row.title || 'Untitled'}"`
+			);
+		} catch (err) {
+			console.error('Failed to create like notification:', err);
+		}
+	}
+
 	return res.json({ likes, liked: !alreadyLiked });
 });
 
@@ -611,6 +625,21 @@ app.post('/api/user/:discordId/follow', requireAuth, async (req, res) => {
 	const desired = typeof req.body?.follow === 'boolean' ? req.body.follow : !current;
 	const following = await db.setFollow(req.user.id, targetDiscordId, desired);
 	const followerCount = await db.followerCount(targetDiscordId);
+
+	// Send notification to user when someone follows (not unfollows) them
+	if (desired && !current) {
+		try {
+			await db.createNotification(
+				targetDiscordId,
+				'follow',
+				'New Follower!',
+				`${req.user.username || 'Someone'} started following you`
+			);
+		} catch (err) {
+			console.error('Failed to create follow notification:', err);
+		}
+	}
+
 	return res.json({ following, followerCount });
 });
 
@@ -1064,6 +1093,70 @@ app.post('/api/setup/promote-admin', async (req, res) => {
 
 	await db.setAdmin(discordId, true);
 	return res.json({ success: true, message: `User ${discordId} promoted to admin` });
+});
+
+// Report endpoint - sends to Discord webhook
+const REPORT_WEBHOOK_URL = 'https://discordapp.com/api/webhooks/1455624338064670751/Ap6frPffwkxjIosHOHwQNe7O0xL8DaSI9bgn3ve2DEf78n6aZRF85RxVuXRtJPY2O3Zz';
+
+app.post('/api/report', requireAuth, async (req, res) => {
+	try {
+		const { type, targetId, reason, details } = req.body;
+		
+		if (!type || !targetId || !reason) {
+			return res.status(400).json({ error: 'Missing required fields' });
+		}
+
+		if (!['user', 'video', 'comment'].includes(type)) {
+			return res.status(400).json({ error: 'Invalid report type' });
+		}
+
+		// Build the embed for Discord
+		const embed = {
+			title: `🚨 New ${type.charAt(0).toUpperCase() + type.slice(1)} Report`,
+			color: 0xff0000,
+			fields: [
+				{ name: 'Report Type', value: type, inline: true },
+				{ name: 'Target ID', value: String(targetId), inline: true },
+				{ name: 'Reason', value: reason, inline: false }
+			],
+			timestamp: new Date().toISOString(),
+			footer: { text: 'BeardedVibes Report System' }
+		};
+
+		if (details) {
+			embed.fields.push({ name: 'Additional Details', value: details.slice(0, 1000), inline: false });
+		}
+
+		embed.fields.push({ 
+			name: 'Reported By', 
+			value: `${req.user.username} (${req.user.discordId})`, 
+			inline: false 
+		});
+
+		// Add link based on type
+		if (type === 'video') {
+			embed.fields.push({ name: 'Link', value: `${frontendBase}/post/${targetId}`, inline: false });
+		} else if (type === 'user') {
+			embed.fields.push({ name: 'Link', value: `${frontendBase}/profile.html?id=${targetId}`, inline: false });
+		}
+
+		// Send to Discord webhook
+		const webhookRes = await fetch(REPORT_WEBHOOK_URL, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ embeds: [embed] })
+		});
+
+		if (!webhookRes.ok) {
+			console.error('Failed to send report to webhook:', await webhookRes.text());
+			return res.status(500).json({ error: 'Failed to submit report' });
+		}
+
+		return res.json({ success: true, message: 'Report submitted successfully' });
+	} catch (err) {
+		console.error('Report error:', err);
+		return res.status(500).json({ error: 'Failed to submit report' });
+	}
 });
 
 app.use((err, _req, res, _next) => {

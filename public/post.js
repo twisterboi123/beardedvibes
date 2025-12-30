@@ -12,6 +12,7 @@ const likeBtn = document.getElementById('like-btn');
 const likeCount = document.getElementById('like-count');
 const watchBtn = document.getElementById('watch-btn');
 const deleteBtn = document.getElementById('delete-btn');
+const reportBtn = document.getElementById('report-btn');
 const followBtn = document.getElementById('follow-btn');
 const commentsList = document.getElementById('comments-list');
 const commentForm = document.getElementById('comment-form');
@@ -503,6 +504,72 @@ async function init() {
         setStatus(err.message, 'error');
         deleteBtn.disabled = false;
         deleteBtn.textContent = '🗑️ Delete';
+      }
+    });
+
+    reportBtn.addEventListener('click', async () => {
+      if (!state.user) {
+        alert('Please sign in to report content');
+        window.location.href = '/api/auth/login';
+        return;
+      }
+      
+      const reasons = [
+        'Inappropriate content',
+        'Copyright violation',
+        'Spam or misleading',
+        'Harassment or hate speech',
+        'Violence or harmful content',
+        'Other'
+      ];
+      
+      const reasonChoice = prompt(
+        'Why are you reporting this video?\\n\\n' +
+        reasons.map((r, i) => `${i + 1}. ${r}`).join('\\n') +
+        '\\n\\nEnter the number (1-6):'
+      );
+      
+      if (!reasonChoice) return;
+      
+      const reasonIndex = parseInt(reasonChoice) - 1;
+      if (isNaN(reasonIndex) || reasonIndex < 0 || reasonIndex >= reasons.length) {
+        alert('Invalid selection');
+        return;
+      }
+      
+      const reason = reasons[reasonIndex];
+      let details = '';
+      
+      if (reason === 'Other') {
+        details = prompt('Please describe the issue:');
+        if (!details) return;
+      }
+      
+      reportBtn.disabled = true;
+      reportBtn.textContent = 'Reporting...';
+      
+      try {
+        const res = await fetch('/api/report', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'video',
+            targetId: id,
+            reason: reason,
+            details: details || undefined
+          })
+        });
+        
+        const result = await res.json();
+        
+        if (!res.ok) throw new Error(result.error || 'Failed to submit report');
+        
+        alert('Thank you! Your report has been submitted and will be reviewed by our team.');
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        reportBtn.disabled = false;
+        reportBtn.textContent = '🚩 Report';
       }
     });
 
