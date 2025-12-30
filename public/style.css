@@ -946,7 +946,7 @@ button:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 16px 34
 
 .profile-header-section {
   background: var(--yt-bg-secondary);
-  padding: 20px;
+  padding: 12px 20px 16px;
   border-bottom: 1px solid var(--yt-border);
 }
 
