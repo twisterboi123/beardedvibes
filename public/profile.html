@@ -233,6 +233,26 @@
 </nav>
 
 <div class="profile-content">
+  <!-- Edit Form (hidden by default) -->
+  <div id="editForm" style="display:none; background:var(--yt-bg-secondary, #181818); border:1px solid var(--yt-border); border-radius:8px; padding:20px; margin-bottom:20px;">
+    <h2 style="margin:0 0 16px; font-size:18px; color:var(--yt-text);">Edit Profile</h2>
+    <form id="profileForm">
+      <div style="margin-bottom:16px;">
+        <label style="display:block; margin-bottom:6px; font-size:14px; color:var(--yt-text);">Display Name</label>
+        <input id="nameInput" type="text" maxlength="80" style="width:100%; padding:10px; background:var(--yt-bg); border:1px solid var(--yt-border); border-radius:4px; color:var(--yt-text); font-size:14px;">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="display:block; margin-bottom:6px; font-size:14px; color:var(--yt-text);">Profile Picture</label>
+        <input id="avatarInput" type="file" accept="image/*" style="display:block; padding:8px; background:var(--yt-bg); border:1px solid var(--yt-border); border-radius:4px; color:var(--yt-text); font-size:14px;">
+      </div>
+      <div style="display:flex; gap:12px; align-items:center;">
+        <button type="submit" class="btn">Save Changes</button>
+        <button type="button" id="cancelEdit" style="padding:10px 16px; border:1px solid var(--yt-border); border-radius:18px; background:transparent; color:var(--yt-text); cursor:pointer; font-size:14px;">Cancel</button>
+        <span id="saveStatus" style="color:var(--yt-text-secondary); font-size:14px;"></span>
+      </div>
+    </form>
+  </div>
+
   <div id="videosTab" class="grid"></div>
   <div id="shortsTab" class="grid" style="display:none"></div>
 </div>
@@ -390,6 +410,57 @@ document.querySelectorAll(".tab").forEach(tab=>{
     shortsTab.style.display = tab.dataset.tab==="shorts"?"grid":"none";
   };
 });
+
+/* EDIT BUTTON */
+editBtn.onclick = () => {
+  const form = document.getElementById('editForm');
+  const isShowing = form.style.display !== 'none';
+  form.style.display = isShowing ? 'none' : 'block';
+  
+  if(!isShowing && profileData){
+    document.getElementById('nameInput').value = profileData.username || '';
+    form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+};
+
+document.getElementById('cancelEdit').onclick = () => {
+  document.getElementById('editForm').style.display = 'none';
+};
+
+document.getElementById('profileForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const status = document.getElementById('saveStatus');
+  status.textContent = 'Saving...';
+  
+  const formData = new FormData();
+  const name = document.getElementById('nameInput').value.trim();
+  const avatar = document.getElementById('avatarInput').files[0];
+  
+  if(name && name !== profileData.username) formData.append('username', name);
+  if(avatar) formData.append('avatar', avatar);
+  
+  if(!formData.has('username') && !formData.has('avatar')){
+    status.textContent = 'No changes to save';
+    return;
+  }
+  
+  try{
+    const res = await fetch('/api/me/profile', {
+      method: 'PATCH',
+      body: formData
+    });
+    
+    if(!res.ok) throw new Error('Failed to save');
+    
+    status.textContent = 'Saved!';
+    setTimeout(() => {
+      status.textContent = '';
+      location.reload();
+    }, 1000);
+  }catch(err){
+    status.textContent = 'Error: ' + err.message;
+  }
+};
 
 /* EDIT BUTTON */
 editBtn.onclick = () => {
