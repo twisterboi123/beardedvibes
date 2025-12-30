@@ -90,6 +90,54 @@
     </main>
   </div>
   <script src="/post.js"></script>
+  
+  <!-- Report Modal -->
+  <div id="report-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content report-modal">
+      <div class="modal-header">
+        <h2>🚩 Report Content</h2>
+        <button class="modal-close" id="report-modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-subtitle">Why are you reporting this video?</p>
+        <div class="report-reasons">
+          <label class="report-reason">
+            <input type="radio" name="report-reason" value="Inappropriate content">
+            <span class="reason-text">Inappropriate content</span>
+          </label>
+          <label class="report-reason">
+            <input type="radio" name="report-reason" value="Copyright violation">
+            <span class="reason-text">Copyright violation</span>
+          </label>
+          <label class="report-reason">
+            <input type="radio" name="report-reason" value="Spam or misleading">
+            <span class="reason-text">Spam or misleading</span>
+          </label>
+          <label class="report-reason">
+            <input type="radio" name="report-reason" value="Harassment or hate speech">
+            <span class="reason-text">Harassment or hate speech</span>
+          </label>
+          <label class="report-reason">
+            <input type="radio" name="report-reason" value="Violence or harmful content">
+            <span class="reason-text">Violence or harmful content</span>
+          </label>
+          <label class="report-reason">
+            <input type="radio" name="report-reason" value="Other">
+            <span class="reason-text">Other</span>
+          </label>
+        </div>
+        <div class="report-details-wrap" id="report-details-wrap" style="display:none;">
+          <label for="report-details">Additional details:</label>
+          <textarea id="report-details" placeholder="Please describe the issue..." maxlength="500"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="ghost-btn" id="report-cancel">Cancel</button>
+        <button class="btn report-submit" id="report-submit" disabled>Submit Report</button>
+      </div>
+    </div>
+  </div>
+  
   <div class="site-credits">Developer: <span>twizip</span> • Owner: <span>TheScrotchy</span> & <span>twizip</span></div>
 </body>
 </html>

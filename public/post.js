@@ -507,47 +507,69 @@ async function init() {
       }
     });
 
-    reportBtn.addEventListener('click', async () => {
+    // Report Modal Logic
+    const reportModal = document.getElementById('report-modal');
+    const reportModalClose = document.getElementById('report-modal-close');
+    const reportCancel = document.getElementById('report-cancel');
+    const reportSubmitBtn = document.getElementById('report-submit');
+    const reportDetailsWrap = document.getElementById('report-details-wrap');
+    const reportDetails = document.getElementById('report-details');
+    const reportReasons = document.querySelectorAll('input[name="report-reason"]');
+
+    function openReportModal() {
+      reportModal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+      // Reset form
+      reportReasons.forEach(r => r.checked = false);
+      reportDetails.value = '';
+      reportDetailsWrap.style.display = 'none';
+      reportSubmitBtn.disabled = true;
+    }
+
+    function closeReportModal() {
+      reportModal.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+
+    reportBtn.addEventListener('click', () => {
       if (!state.user) {
         alert('Please sign in to report content');
         window.location.href = '/api/auth/login';
         return;
       }
-      
-      const reasons = [
-        'Inappropriate content',
-        'Copyright violation',
-        'Spam or misleading',
-        'Harassment or hate speech',
-        'Violence or harmful content',
-        'Other'
-      ];
-      
-      const reasonChoice = prompt(
-        'Why are you reporting this video?\\n\\n' +
-        reasons.map((r, i) => `${i + 1}. ${r}`).join('\\n') +
-        '\\n\\nEnter the number (1-6):'
-      );
-      
-      if (!reasonChoice) return;
-      
-      const reasonIndex = parseInt(reasonChoice) - 1;
-      if (isNaN(reasonIndex) || reasonIndex < 0 || reasonIndex >= reasons.length) {
-        alert('Invalid selection');
+      openReportModal();
+    });
+
+    reportModalClose.addEventListener('click', closeReportModal);
+    reportCancel.addEventListener('click', closeReportModal);
+    
+    reportModal.addEventListener('click', (e) => {
+      if (e.target === reportModal) closeReportModal();
+    });
+
+    reportReasons.forEach(radio => {
+      radio.addEventListener('change', () => {
+        const selected = document.querySelector('input[name="report-reason"]:checked');
+        reportSubmitBtn.disabled = !selected;
+        reportDetailsWrap.style.display = selected && selected.value === 'Other' ? 'block' : 'none';
+      });
+    });
+
+    reportSubmitBtn.addEventListener('click', async () => {
+      const selected = document.querySelector('input[name="report-reason"]:checked');
+      if (!selected) return;
+
+      const reason = selected.value;
+      const details = reportDetails.value.trim();
+
+      if (reason === 'Other' && !details) {
+        alert('Please provide details for your report');
         return;
       }
-      
-      const reason = reasons[reasonIndex];
-      let details = '';
-      
-      if (reason === 'Other') {
-        details = prompt('Please describe the issue:');
-        if (!details) return;
-      }
-      
-      reportBtn.disabled = true;
-      reportBtn.textContent = 'Reporting...';
-      
+
+      reportSubmitBtn.disabled = true;
+      reportSubmitBtn.textContent = 'Submitting...';
+
       try {
         const res = await fetch('/api/report', {
           method: 'POST',
@@ -559,17 +581,18 @@ async function init() {
             details: details || undefined
           })
         });
-        
+
         const result = await res.json();
-        
+
         if (!res.ok) throw new Error(result.error || 'Failed to submit report');
-        
+
+        closeReportModal();
         alert('Thank you! Your report has been submitted and will be reviewed by our team.');
       } catch (err) {
         alert('Error: ' + err.message);
       } finally {
-        reportBtn.disabled = false;
-        reportBtn.textContent = '🚩 Report';
+        reportSubmitBtn.disabled = false;
+        reportSubmitBtn.textContent = 'Submit Report';
       }
     });
 

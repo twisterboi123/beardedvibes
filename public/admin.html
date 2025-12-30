@@ -239,6 +239,90 @@
 			transform: translateY(-2px);
 			box-shadow: 0 4px 16px rgba(62, 166, 255, 0.2);
 		}
+
+		/* Mobile Responsive Styles */
+		@media (max-width: 768px) {
+			.admin-container {
+				padding: 16px;
+			}
+			
+			.admin-content {
+				padding: 16px;
+				border-radius: 16px;
+			}
+			
+			.admin-tabs {
+				flex-wrap: wrap;
+				gap: 8px;
+			}
+			
+			.tab-btn {
+				padding: 10px 16px;
+				font-size: 13px;
+				flex: 1;
+				min-width: 120px;
+				text-align: center;
+			}
+			
+			.admin-item {
+				flex-direction: column;
+				align-items: flex-start;
+				gap: 12px;
+				padding: 14px;
+			}
+			
+			.admin-item img {
+				width: 100%;
+				max-width: 200px;
+			}
+			
+			.admin-item-actions {
+				width: 100%;
+				display: flex;
+				gap: 8px;
+				flex-wrap: wrap;
+			}
+			
+			.admin-item-actions button {
+				flex: 1;
+				min-width: 100px;
+			}
+			
+			.top-bar {
+				padding: 14px 16px;
+			}
+			
+			.top-bar h1 {
+				font-size: 18px;
+			}
+			
+			.back-link {
+				padding: 8px 12px;
+				font-size: 13px;
+			}
+		}
+		
+		@media (max-width: 480px) {
+			.admin-container {
+				padding: 10px;
+			}
+			
+			.admin-content {
+				padding: 12px;
+			}
+			
+			.admin-tabs {
+				flex-direction: column;
+			}
+			
+			.tab-btn {
+				width: 100%;
+			}
+			
+			.top-bar h1 {
+				font-size: 16px;
+			}
+		}
 	</style>
 </head>
 <body>
