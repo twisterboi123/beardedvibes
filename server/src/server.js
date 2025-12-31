@@ -20,7 +20,7 @@ dotenv.config();
 
 const app = express();
 const port = Number(process.env.SERVER_PORT || 3000);
-const maxUploadMb = Number(process.env.MAX_UPLOAD_MB || 15);
+const maxUploadMb = Number(process.env.MAX_UPLOAD_MB || 1000); // 1 GB limit for long-form videos
 const uploadsDir = path.resolve(__dirname, '..', 'uploads');
 const publicDir = path.resolve(__dirname, '..', '..', 'public');
 const frontendBase = (process.env.FRONTEND_BASE_URL || `http://localhost:${port}`).replace(/\/$/, '');
