@@ -245,10 +245,17 @@ async function ensureSession() {
 }
 
 form.addEventListener('submit', async (e) => {
+
   e.preventDefault();
   const file = fileInput.files?.[0];
   if (!file) {
     setStatus('Choose a video file to upload.', 'error');
+    return;
+  }
+  // Frontend file size check (1GB = 1,000,000,000 bytes)
+  const MAX_SIZE_BYTES = 1000 * 1024 * 1024;
+  if (file.size > MAX_SIZE_BYTES) {
+    setStatus('File too large. Max size is 1GB.', 'error');
     return;
   }
 
