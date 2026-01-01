@@ -41,7 +41,7 @@
       </button>
       <div id="auth-menu" class="auth-menu" style="display:none;">
         <button class="auth-option" data-provider="discord">Sign in with Discord</button>
-        <button class="auth-option" data-provider="google">Sign in with Google (coming soon)</button>
+        <button class="auth-option" data-provider="google">Sign in with Google</button>
       </div>
       <div id="user-menu" class="user-menu" style="display:none;">
         <span id="user-avatar" class="user-avatar">👤</span>
@@ -219,7 +219,7 @@
         const provider = btn.dataset.provider;
         toggleAuthMenu(false);
         if (provider === 'google') {
-          alert('Google sign-in is coming soon.');
+          window.location.href = '/api/auth/google';
           return;
         }
         window.location.href = '/api/auth/login';
