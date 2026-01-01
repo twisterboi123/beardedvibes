@@ -113,7 +113,8 @@ function signSession(user) {
 	const avatar = resolveAssetUrl(avatarRaw);
 	const isAdmin = user.isAdmin ?? user.isadmin ?? false;
 	const isBanned = user.isBanned ?? user.isbanned ?? false;
-	return jwt.sign({ id: user.id, discordId, username, avatar, isAdmin, isBanned }, jwtSecret, { expiresIn: '30d' });
+	const isOwner = user.isOwner ?? user.isowner ?? false;
+	return jwt.sign({ id: user.id, discordId, username, avatar, isAdmin, isBanned, isOwner }, jwtSecret, { expiresIn: '30d' });
 }
 
 function normalizeUser(user) {
@@ -125,7 +126,8 @@ function normalizeUser(user) {
 	const avatar = resolveAssetUrl(avatarRaw);
 	const isAdmin = user.isAdmin ?? user.isadmin ?? false;
 	const isBanned = user.isBanned ?? user.isbanned ?? false;
-	return { id: user.id, discordId, username, avatar, isAdmin, isBanned };
+	const isOwner = user.isOwner ?? user.isowner ?? false;
+	return { id: user.id, discordId, username, avatar, isAdmin, isBanned, isOwner };
 }
 
 async function authOptional(req, res, next) {
@@ -168,6 +170,13 @@ function requireAuth(req, res, next) {
 function requireAdmin(req, res, next) {
 	if (!req.user || !req.user.isAdmin) {
 		return res.status(403).json({ error: 'Admin access required' });
+	}
+	return next();
+}
+
+function requireOwner(req, res, next) {
+	if (!req.user || !req.user.isOwner) {
+		return res.status(403).json({ error: 'Owner access required' });
 	}
 	return next();
 }
@@ -1107,6 +1116,11 @@ app.post('/api/admin/user/:discordId/admin', requireAdmin, async (req, res) => {
 	const discordId = req.params.discordId;
 	if (!discordId) return res.status(400).json({ error: 'Invalid user' });
 
+	// Only owners can promote/demote admins
+	if (!req.user.isOwner) {
+		return res.status(403).json({ error: 'Only owners can manage admin permissions' });
+	}
+
 	const { admin } = req.body;
 	await db.setAdmin(discordId, Boolean(admin));
 	return res.json({ success: true, message: `User ${admin ? 'promoted to' : 'removed from'} admin` });
@@ -1121,7 +1135,7 @@ app.post('/api/admin/user/:discordId/staff', requireAdmin, async (req, res) => {
 	return res.json({ success: true, message: `User ${staff ? 'given' : 'removed'} Staff badge` });
 });
 
-app.post('/api/admin/user/:discordId/owner', requireAdmin, async (req, res) => {
+app.post('/api/admin/user/:discordId/owner', requireOwner, async (req, res) => {
 	const discordId = req.params.discordId;
 	if (!discordId) return res.status(400).json({ error: 'Invalid user' });
 
