@@ -50,7 +50,6 @@ export function createDatabase(config) {
         await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT DEFAULT ''`);
         await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS banner TEXT DEFAULT ''`);
         await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS profileColor TEXT DEFAULT '#3ea6ff'`);
-        await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS thumbnail TEXT DEFAULT ''`);
         await pool.query(`
           CREATE TABLE IF NOT EXISTS posts (
             id SERIAL PRIMARY KEY,
@@ -63,7 +62,8 @@ export function createDatabase(config) {
             status TEXT NOT NULL,
             editToken TEXT NOT NULL,
             createdAt TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            format TEXT NOT NULL DEFAULT 'long'
+            format TEXT NOT NULL DEFAULT 'long',
+            thumbnail TEXT DEFAULT ''
           );
         `);
         await pool.query(`
